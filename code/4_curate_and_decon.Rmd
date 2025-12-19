@@ -1,0 +1,407 @@
+---
+title: "curate tax assignments and decon ASVs"
+output: html_document
+date: "2025-12-18"
+author: "Kimberly Ledger"
+---
+
+```{r}
+library(tidyverse)
+library(ggplot2)
+library(here)
+```
+
+perform additional taxonomic curation and summary of ASV taxonomic assignments
+```{r}
+## load taxonomic assignments
+assignments <- read.csv(here("tax_outputs", "collapsed_taxonomy.csv")) %>% unique() %>% select(!X)
+
+## load LULU output
+map <- read.csv(here("ref", "asvmap_lulu98.csv")) %>%
+  rename(ASV = X)
+
+## merge 
+join <- map %>%
+  left_join(assignments, by = "ASV") %>%
+  rename(ASV_taxon = taxon) %>%
+  select(ASV:curated, ASV_taxon) %>%
+  left_join(assignments, by = c("parent_id" = "ASV")) %>%
+  rename(parent_taxon = taxon) %>%
+  select(ASV:ASV_taxon, parent_taxon)
+
+mismatches <- join %>%
+  filter(ASV_taxon != parent_taxon)
+
+mismatches_species <- mismatches %>%
+  filter(str_detect(ASV_taxon, " "))
+# keep species-level tax assignments that lulu merged to higher classification...
+# in other words, use ASV_taxon here
+
+keeper_1 <- mismatches_species$ASV
+
+mismatches_parent_notspecies <- mismatches %>%
+  filter(!str_detect(parent_taxon, " ")) %>%
+## use ASV_taxon for these too, except when parent_taxon == "Pleuronectidae"
+  filter(parent_taxon == "Pleuronectidae")
+
+keeper_2 <- mismatches_parent_notspecies$ASV
+keeper_all <- unique(c(keeper_1, keeper_2))
+
+## otherwise, use the parent ASV id  
+```
+
+update asv to use for taxonomic assignment 
+```{r}
+map_updated <- map %>%
+  select(!spread) %>%
+  select(!rank) %>%
+  mutate(parent_id = ifelse(ASV %in% keeper_all, ASV, parent_id),
+         curated = ifelse(ASV %in% keeper_all, "updated", curated))
+```
+
+merge taxonomic assignments with ASV table 
+```{r}
+asv_table <- read.csv(here("dada2_blastn_outputs", "ASVtable.csv")) %>%
+  rename(sample_id = X) %>%
+  pivot_longer(cols = -1, names_to = "ASV", values_to = "reads") %>%
+  filter(reads > 0) %>%
+  left_join(map_updated, by = "ASV") %>%
+  select(!total) %>%
+  select(!curated) %>%
+  rename(ASV_for_tax_ID = parent_id) %>%
+  left_join(assignments, by = c("ASV_for_tax_ID" = "ASV"))
+```
+
+
+### start decontamination steps ### 
+
+#### 1 - remove ASVs that do not have a taxonomic assingment 
+```{r}
+asv_table_filter1 <- asv_table %>%
+  filter(!is.na(taxon))
+
+removed_asvs <- anti_join(asv_table, asv_table_filter1) %>%
+  group_by(ASV) %>%
+  summarize(total_reads = sum(reads)) %>%
+  arrange(desc(total_reads))
+removed_asvs
+
+#how many ASVs and total reads removed because of no tax assignment? 
+nrow(removed_asvs)
+sum(removed_asvs$total_reads)
+#proportion of reads removed because of no taxonomic assignment
+sum(removed_asvs$total_reads)/sum(asv_table$reads)
+```
+
+look at non-fish taxonomic assignments 
+```{r}
+asv_table_filter1 %>% filter(class != "Actinopteri") %>% filter(reads > 0) %>%
+  group_by(taxon) %>%
+  summarize(total_reads = sum(reads),
+            n_pcr_reps = n_distinct(sample_id))
+```
+
+since the focus of this study is on fish, filter to remove non-Actinopteri taxonomic assignments
+Bathyraja has a couple reads which is likely real, but since mifish doesn't do well with skates I'll go ahead and remove it 
+```{r}
+asv_table_filter2 <- asv_table_filter1 %>%
+  filter(class == "Actinopteri") 
+```
+
+
+add column to sample tracking table to include number of reads per sample after taxonomic assignment 
+```{r}
+track <- read.csv(here("dada2_blastn_outputs", "track.csv")) %>%
+  rename(sample_id = X)
+
+reads_per_sample <- asv_table_filter2 %>%
+  group_by(sample_id) %>%
+  summarize(tax_reads = sum(reads))
+
+track <- track %>%
+  left_join(reads_per_sample) %>%
+  mutate(tax_reads = ifelse(is.na(tax_reads), 0, tax_reads))
+```
+
+
+load sample metadata 
+```{r}
+metadata <- read.csv(here("BeringSea2024_metaprobes_metadata.csv"))
+```
+
+add column to the ASV table that labels the sample type
+```{r}
+asv_table_filter2 <- asv_table_filter2 %>%
+  mutate(extraction_ID = sub("-.*$", "", sample_id)) %>%
+  mutate(extraction_ID = ifelse(sample_id == "NC-Meta-A", "NC_Meta", extraction_ID),
+         extraction_ID = ifelse(sample_id == "NC-Meta-B", "NC_Meta", extraction_ID),
+         extraction_ID = ifelse(sample_id == "PC-Meta-A", "PC_Meta", extraction_ID),
+         extraction_ID = ifelse(sample_id == "PC-Meta-B", "PC_Meta", extraction_ID))
+
+asv_table_with_sample_type <- metadata %>%
+  dplyr::select(extraction_ID, sample_type) %>%
+  left_join(asv_table_filter2, by = "extraction_ID")
+```
+
+
+#### 2 - account for tag-jumping using the positive controls 
+
+first, plot
+```{r}
+asv_table_with_sample_type %>%
+  filter(reads > 0) %>%
+  filter(sample_type == "positive") %>%
+  ggplot(aes(x=sample_id, y=reads, fill=ASV)) +
+  geom_bar(stat = "identity") + 
+    theme_bw() +
+  labs(
+    y = "number of sequencing reads",
+    x = "sample ID",
+    title = "ASV reads in positive control") + 
+  theme(
+    axis.text.x = element_text(angle = 90, hjust = 0.95),
+    legend.text = element_text(size = 8),
+    legend.key.size = unit(0.3, "cm"),
+    legend.position = "right",
+    #legend.position = "none",
+    legend.title = element_blank()
+  )
+
+asv_table_with_sample_type %>%
+  filter(reads > 0) %>%
+  filter(sample_type == "positive") %>%
+  ggplot(aes(x=sample_id, y=reads, fill=taxon)) +
+  geom_bar(stat = "identity") + 
+    theme_bw() +
+  labs(
+    y = "number of sequencing reads",
+    x = "sample ID",
+    title = "ASV reads in positive control") + 
+  theme(
+    axis.text.x = element_text(angle = 90, hjust = 0.95),
+    legend.text = element_text(size = 8),
+    legend.key.size = unit(0.3, "cm"),
+    legend.position = "right",
+    #legend.position = "none",
+    legend.title = element_blank()
+  )
+```
+
+subtract the proportion of reads that jumped into the positive control samples from each environmental sample 
+
+since sturgeon is MIA from PC-Meta-B, i'll just use the proportion from PC-Meta-A
+
+identify the maximum proportion of reads for each ASV found in the positive controls by sequencing run 
+```{r}
+prop_asvs_in_positives <- asv_table_with_sample_type %>%
+  filter(reads > 0) %>%
+  filter(sample_id == "PC-Meta-A") %>%
+  group_by(sample_id) %>%
+  mutate(TotalReadsPerSample = sum(reads)) %>%
+  mutate(Prop = reads/TotalReadsPerSample) %>%
+  group_by(ASV) %>%
+  summarise(max_prop = max(Prop)) %>%
+  arrange(desc(max_prop)) 
+prop_asvs_in_positives
+```
+
+
+** 1.8% of pollock reads and 0.1% of Lycodes reads removed from all environmental samples 
+
+subtract the max proportion of tag-jumped reads for each ASV from samples
+```{r}
+indexhop_table <- asv_table_with_sample_type %>%
+  group_by(sample_id) %>%
+  mutate(TotalReadsPerSample = sum(reads, na.rm = T)) %>%
+  left_join(prop_asvs_in_positives, by = c("ASV")) %>%
+  mutate(IndexHoppingReads = TotalReadsPerSample*max_prop) %>%
+  mutate(IndexHoppingReads = if_else(is.na(IndexHoppingReads), 0, IndexHoppingReads)) %>%
+  mutate(IndexHoppingReads = as.integer(IndexHoppingReads)) %>%
+  mutate(reads_IndexHop_removed = reads - IndexHoppingReads) %>%
+  mutate(reads_IndexHop_removed = if_else(reads_IndexHop_removed < 0, 0, reads_IndexHop_removed))
+head(indexhop_table)
+```
+
+clean up the table by removing columns no longer needed 
+```{r}
+asv_table_filter3 <- indexhop_table %>%
+  dplyr::select(!reads) %>%
+  dplyr::select(!TotalReadsPerSample) %>%
+  dplyr::select(!max_prop) %>%
+  dplyr::select(!IndexHoppingReads) %>%
+  dplyr::rename(reads = reads_IndexHop_removed)
+```
+
+
+### 3 - Account for contaminants in negative controls 
+
+plot negatives 
+
+first, pcr negatives 
+```{r}
+asv_table_filter3 %>%
+  filter(reads > 0) %>%
+  filter(sample_type == "pcr_blank") 
+
+asv_table_filter3 %>%
+  filter(reads > 0) %>%
+  filter(sample_type == "pcr_blank") %>%
+  ggplot(aes(x=sample_id, y=reads, fill=ASV)) +
+  geom_bar(stat = "identity") + 
+    theme_bw() +
+  labs(
+    y = "number of sequencing reads",
+    x = "sample ID",
+    title = "ASVs in PCR negative controls") + 
+  theme(
+    axis.text.x = element_text(angle = 90, hjust = 0.95),
+    #axis.text.x = element_blank(),
+    legend.text = element_text(size = 8),
+    legend.key.size = unit(0.3, "cm"),
+    legend.position = "right",
+    #legend.position = "none",
+    legend.title = element_blank()
+  )
+
+asv_table_filter3 %>%
+  filter(reads > 0) %>%
+  filter(sample_type == "pcr_blank") %>%
+  ggplot(aes(x=sample_id, y=reads, fill=taxon)) +
+  geom_bar(stat = "identity") + 
+    theme_bw() +
+  labs(
+    y = "number of sequencing reads",
+    x = "sample ID",
+    title = "ASVs in PCR negative controls") + 
+  theme(
+    axis.text.x = element_text(angle = 90, hjust = 0.95),
+    #axis.text.x = element_blank(),
+    legend.text = element_text(size = 8),
+    legend.key.size = unit(0.3, "cm"),
+    legend.position = "right",
+    #legend.position = "none",
+    legend.title = element_blank()
+  )
+```
+
+quite a bit of pollock in PCR negatives... 
+
+no extraction blanks included  
+
+next, field blanks 
+```{r}
+asv_table_filter3 %>%
+  filter(reads > 0) %>%
+  filter(sample_type == "field_blank") %>%
+  ggplot(aes(x=sample_id, y=reads, fill=ASV)) +
+  geom_bar(stat = "identity") + 
+    theme_bw() +
+  labs(
+    y = "number of sequencing reads",
+    x = "sample ID",
+    title = "ASVs in field negative controls") + 
+  theme(
+    #axis.text.x = element_text(angle = 90, hjust = 0.95),
+    axis.text.x = element_blank(),
+    legend.text = element_text(size = 8),
+    legend.key.size = unit(0.3, "cm"),
+    legend.position = "right",
+    #legend.position = "none",
+    legend.title = element_blank()
+  )
+
+asv_table_filter3 %>%
+  filter(reads > 0) %>%
+  filter(sample_type == "field_blank") %>%
+  ggplot(aes(x=sample_id, y=reads, fill=taxon)) +
+  geom_bar(stat = "identity") + 
+    theme_bw() +
+  labs(
+    y = "number of sequencing reads",
+    x = "sample ID",
+    title = "taxa in field negative controls") + 
+  theme(
+    #axis.text.x = element_text(angle = 90, hjust = 0.95),
+    axis.text.x = element_blank(),
+    legend.text = element_text(size = 8),
+    legend.key.size = unit(0.3, "cm"),
+    legend.position = "right",
+    #legend.position = "none",
+    legend.title = element_blank()
+  )
+```
+
+plenty of reads in many of the field blanks... 
+
+conclusion: probably some sort of additional read subtraction or consideration of negatives is necessary for proper interpretation of the field samples, but for now not going to take any action. 
+
+
+#### 4 - Remove low read depth samples based on ASV accumulation curve
+
+```{r}
+library(vegan)
+
+asv_table_wide <- asv_table_filter3 %>%
+  select(sample_id, ASV, reads) %>%
+  filter(!is.na(reads)) %>%
+  mutate(reads = as.integer(reads)) %>%
+  pivot_wider(names_from = ASV, values_from = reads, values_fill = 0)
+
+sample_ids <- asv_table_wide$sample_id
+
+asv_table_wide <- asv_table_wide %>%
+  ungroup() %>%
+  select(-sample_id)
+
+## plots the figure
+rarecurve(asv_table_wide, step = 20, col = "blue", label = FALSE, 
+          main = "Sequencing Effort Curves",
+          xlab = "Sequencing Depth", ylab = "Number of ASVs Identified",
+          xlim = c(0,5000))
+```
+
+
+summarize in a table how many pcr replicates meet certain read count thresholds 
+```{r}
+read_summary <- asv_table_filter3 %>%
+  filter(!is.na(reads)) %>%
+  group_by(sample_id, sample_type) %>%
+  summarize(tot_reads = sum(reads)) %>%
+  arrange(desc(tot_reads)) %>%
+  group_by(sample_type) %>%
+  summarize(atleast0 = sum(tot_reads >= 0),
+            atleast100 = sum(tot_reads >= 100),
+            atleast500 = sum(tot_reads >= 500),
+            atleast1k = sum(tot_reads >= 1000),
+            atleast2k = sum(tot_reads >= 2000))
+read_summary
+```
+
+
+apply a threshold of 2000 reads per pcr replicate
+- all lab controls removed and some field blanks removed, all field samples retained
+```{r}
+asv_table_filter4 <- asv_table_filter3 %>%
+  group_by(sample_id) %>%
+  mutate(tot_reads = sum(reads)) %>%
+  filter(tot_reads >= 2000)
+```
+
+```{r}
+#saveRDS(asv_table_filter4, file = here("decon_outputs", "decontaminated_asv_table.RDS"))
+```
+
+also update and output the sample tracking file 
+```{r}
+reads_per_sample_decon <- asv_table_filter4 %>%
+  group_by(sample_id) %>%
+  summarize(decon_reads = sum(reads))
+
+track <- track %>%
+  left_join(reads_per_sample_decon) %>%
+  mutate(decon_reads = ifelse(is.na(decon_reads), 0, decon_reads))
+
+#write.csv(track, here("decon_outputs", "track.csv"))
+```
+
+

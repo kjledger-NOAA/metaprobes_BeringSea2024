@@ -1,0 +1,144 @@
+---
+title: "metaprobe summary"
+output: html_document
+date: "2025-12-18"
+---
+
+libraries
+```{r}
+library(tidyverse)
+library(here)
+library(ggplot2)
+```
+
+load decontaminated ASV table 
+```{r}
+asv_table <- readRDS(here("decon_outputs", "decontaminated_asv_table.RDS"))
+```
+
+convert to taxon table
+and remove any remaining pc reads 
+```{r}
+taxon_table <- asv_table %>%
+  filter(taxon != "Acipenser fulvescens") %>% 
+  group_by(extraction_ID, sample_type, sample_id, taxon, taxonomic_level, species, genus, family, order) %>%
+  summarize(reads = sum(reads)) %>%
+  filter(reads > 0)
+
+taxon_table_summary <- taxon_table %>%
+  group_by(taxon, species, genus, family, order) %>%
+  summarize(total_reads = sum(reads)) %>%
+  arrange(desc(total_reads))
+```
+
+load sample metadata 
+```{r}
+metadata <- read.csv(here("BeringSea2024_metaprobes_metadata.csv"))
+
+taxon_table_w_meta <- taxon_table %>% 
+  left_join(metadata)
+```
+
+just start by comparing the samples/pcr-reps from the same haul 
+```{r}
+taxon_table_w_meta %>%
+  filter(haul == 187) %>%
+  group_by(sample_id) %>%
+  mutate(total_reads = sum(reads),
+         prop_reads = reads/total_reads) %>%
+  ggplot(aes(x=sample_id, y=prop_reads, fill=taxon)) +
+  geom_bar(stat = "identity") + 
+  theme_bw() +
+  facet_wrap(~net, scales = "free") +
+  labs(
+    y = "proportion of sequencing reads",
+    x = "sample ID") + 
+  theme(
+    axis.text.x = element_text(angle = 90, hjust = 0.95),
+    legend.text = element_text(size = 8),
+    legend.key.size = unit(0.3, "cm"),
+    legend.position = "right",
+    #legend.position = "none",
+    legend.title = element_blank()
+  )
+```
+
+```{r}
+taxon_table_w_meta %>%
+  filter(haul == 188) %>%
+  filter(!is.na(net)) %>%
+  group_by(sample_id) %>%
+  mutate(total_reads = sum(reads),
+         prop_reads = reads/total_reads) %>%
+  ggplot(aes(x=sample_id, y=prop_reads, fill=taxon)) +
+  geom_bar(stat = "identity") + 
+  theme_bw() +
+  facet_wrap(~net, scales = "free") +
+  labs(
+    y = "proportion of sequencing reads",
+    x = "sample ID") + 
+  theme(
+    axis.text.x = element_text(angle = 90, hjust = 0.95),
+    legend.text = element_text(size = 8),
+    legend.key.size = unit(0.3, "cm"),
+    legend.position = "right",
+    #legend.position = "none",
+    legend.title = element_blank()
+  )
+```
+
+```{r}
+taxon_table_w_meta %>%
+  filter(haul == 189) %>%
+  filter(!is.na(net)) %>%
+  group_by(sample_id) %>%
+  mutate(total_reads = sum(reads),
+         prop_reads = reads/total_reads) %>%
+  ggplot(aes(x=sample_id, y=prop_reads, fill=taxon)) +
+  geom_bar(stat = "identity") + 
+  theme_bw() +
+  facet_wrap(~net, scales = "free") +
+  labs(
+    y = "proportion of sequencing reads",
+    x = "sample ID") + 
+  theme(
+    axis.text.x = element_text(angle = 90, hjust = 0.95),
+    legend.text = element_text(size = 8),
+    legend.key.size = unit(0.3, "cm"),
+    legend.position = "right",
+    #legend.position = "none",
+    legend.title = element_blank()
+  )
+```
+
+zoom in on some taxa - see what assignments might need updating 
+```{r}
+gadus <- taxon_table_w_meta %>%
+  filter(genus == "Gadus") %>%
+  group_by(taxon) %>%
+  summarise(total_reads = sum(reads))
+gadus
+
+#prop of read to walleye pollock 
+4058893/(sum(gadus$total_reads))
+#prop of read to pcod
+12714/(sum(gadus$total_reads))
+#prop of read to gadus
+127482/(sum(gadus$total_reads))
+
+## catch weight from associated hauls was 
+# 18078.545 kg pollock 
+18078.545 / (18078.545+917.214)
+# 917.214 kg pcod 
+917.214 / (18078.545+917.214)
+```
+very similar pollock proportions, unassigned gadus reads likely mostly pcod... 
+
+```{r}
+
+```
+
+
+
+
+

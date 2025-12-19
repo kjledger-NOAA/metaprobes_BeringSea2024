@@ -1,0 +1,198 @@
+---
+title: "get trawl catch data via akfin"
+output: html_document
+date: "2025-12-18"
+---
+
+```{r}
+#devtools::install_github("MattCallahan-NOAA/akfingapdata")
+library(akfingapdata)
+library(tidyverse)
+library(keyring)
+library(kableExtra)
+
+token <- create_token("~/Documents/orx-eDNA/kim_token.txt")
+```
+
+## metaprobe metadata 
+```{r}
+metadata <- read.csv(here("BeringSea2024_metaprobes_metadata.csv"))
+unique(metadata$haul)
+#17 hauls
+```
+
+
+## get gap data via akfin
+```{r}
+#save gap metadata
+gap_metadata <- get_gap_metadata_column()
+
+taxa<- get_gap_taxonomic_groups()
+
+fish <- taxa %>%
+  filter(class_taxon == "Teleostei")
+spp_codes <- fish$species_code
+
+gap_cruise<-get_gap_cruise()
+gap_haul<-get_gap_haul()
+
+# cruise_id = 202401
+# vessel_id = 162
+# survey_definition_id = 98
+# cruise_join = -767
+
+all_catch <-lapply(spp_codes, FUN = function(x) get_gap_catch(
+                survey_definition_id = 98,
+                species_code = x,
+                start_year=2024,
+                end_year=2024)) %>%
+  bind_rows()
+
+#write.csv(all_catch, here("catch_outputs", "2024_survey98_catch.csv"))
+
+all_catch <- read.csv(here("catch_outputs", "2024_survey98_catch.csv"))
+
+all_catch_summary <- all_catch %>% 
+  left_join(fish) %>%
+  group_by(species_name, common_name, species_code, genus_taxon, family_taxon, order_taxon) %>%
+  summarise(total_kg = sum(weight_kg),
+            total_count = sum(count, na.rm = T)) %>%
+  arrange(desc(total_kg))
+
+#write.csv(all_catch_summary, here("catch_outputs", "2024_survey98_catch_summary.csv"))
+
+metaprobe_hauls<- gap_haul %>%
+  filter(cruisejoin == '-767') %>%
+  filter(haul %in% metadata$haul)
+
+hauljoin_ids <- metaprobe_hauls$hauljoin
+
+metaprobe_catch <- all_catch %>%
+  filter(hauljoin %in% hauljoin_ids) %>%
+  left_join(metaprobe_hauls) %>%
+  select(!X)
+
+#write.csv(metaprobe_catch, here("catch_outputs", "metaprobe_haul_catch.csv"))
+
+#metahauls_w_catch <- metaprobe_catch %>%
+#  left_join(fish)
+```
+
+plot catch (kg)
+```{r}
+metaprobe_catch %>%
+  ggplot(aes(x=as.factor(hauljoin), y=weight_kg, fill=species_name)) +
+  geom_bar(stat = "identity") + 
+  scale_y_sqrt() + 
+  theme_bw() +
+  labs(
+    y = "weight (kg)",
+    x = "haul") + 
+  theme(
+    axis.text.x = element_text(angle = 90, hjust = 0.95),
+    legend.text = element_text(size = 8),
+    legend.key.size = unit(0.3, "cm"),
+    legend.position = "right",
+    legend.title = element_blank()
+  )
+```
+
+```{r}
+metaprobe_catch %>%
+  group_by(hauljoin) %>%
+  mutate(total_kg = sum(weight_kg),
+         prop_kg = weight_kg/total_kg) %>%
+  ggplot(aes(x=as.factor(hauljoin), y=prop_kg, fill=species_name)) +
+  geom_bar(stat = "identity") + 
+  theme_bw() +
+  labs(
+    y = "proportion of catch weight",
+    x = "haul") + 
+  theme(
+    axis.text.x = element_text(angle = 90, hjust = 0.95),
+    legend.text = element_text(size = 8),
+    legend.key.size = unit(0.3, "cm"),
+    legend.position = "right",
+    legend.title = element_blank()
+  )
+```
+
+plot just a single haul 
+```{r}
+metaprobe_catch %>%
+  filter(haul == 189) %>%
+  group_by(hauljoin) %>%
+  mutate(total_kg = sum(weight_kg),
+         prop_kg = weight_kg/total_kg) %>%
+  ggplot(aes(x=as.factor(hauljoin), y=prop_kg, fill=species_name)) +
+  geom_bar(stat = "identity") + 
+  theme_bw() +
+  labs(
+    y = "proportion of catch weight",
+    x = "haul") + 
+  theme(
+    axis.text.x = element_text(angle = 90, hjust = 0.95),
+    legend.text = element_text(size = 12),
+    legend.key.size = unit(0.3, "cm"),
+    legend.position = "right",
+    legend.title = element_blank()
+  )
+```
+
+
+
+plot catch (number)
+```{r}
+metahauls_w_catch %>%
+  ggplot(aes(x=as.factor(hauljoin), y=count, fill=species_name)) +
+  geom_bar(stat = "identity") + 
+  scale_y_sqrt() + 
+  theme_bw() +
+  labs(
+    y = "count",
+    x = "haul") + 
+  theme(
+    axis.text.x = element_text(angle = 90, hjust = 0.95),
+    legend.text = element_text(size = 8),
+    legend.key.size = unit(0.3, "cm"),
+    legend.position = "right",
+    legend.title = element_blank()
+  )
+```
+
+
+```{r}
+metahauls_w_catch %>%
+  group_by(hauljoin) %>%
+  mutate(total_count = sum(count),
+         prop_count = count/total_count) %>%
+  ggplot(aes(x=as.factor(hauljoin), y=prop_count, fill=species_name)) +
+  geom_bar(stat = "identity") + 
+  theme_bw() +
+  labs(
+    y = "proportion of catch count",
+    x = "haul") + 
+  theme(
+    axis.text.x = element_text(angle = 90, hjust = 0.95),
+    legend.text = element_text(size = 8),
+    legend.key.size = unit(0.3, "cm"),
+    legend.position = "right",
+    legend.title = element_blank()
+  )
+```
+
+
+
+save a list of species caught in these hauls 
+```{r}
+bt_catch <- metahauls_w_catch %>% 
+  group_by(species_name, common_name, species_code, genus_taxon, family_taxon, order_taxon) %>%
+  summarise(total_kg = sum(weight_kg),
+            total_count = sum(count)) %>%
+  arrange(desc(total_kg))
+
+bt_catch
+
+#write.csv(bt_catch, here("catch_outputs", "haul_catch.csv"))
+```
+

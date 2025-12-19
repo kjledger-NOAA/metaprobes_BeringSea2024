@@ -1,0 +1,86 @@
+"","species_name","common_name","species_code","genus_taxon","family_taxon","order_taxon","total_kg","total_count"
+"1","Gadus chalcogrammus","walleye pollock",21740,"Gadus","Gadidae","Gadiformes",163211.215,306898
+"2","Limanda aspera","yellowfin sole",10210,"Limanda","Pleuronectidae","Pleuronectiformes",48342.574,181377
+"3","Lepidopsetta polyxystra","northern rock sole",10261,"Lepidopsetta","Pleuronectidae","Pleuronectiformes",46105.177,238123
+"4","Hippoglossoides elassodon","flathead sole",10130,"Hippoglossoides","Pleuronectidae","Pleuronectiformes",22390.245,71106
+"5","Gadus macrocephalus","Pacific cod",21720,"Gadus","Gadidae","Gadiformes",19811.895,13692
+"6","Atheresthes stomias","arrowtooth flounder",10110,"Atheresthes","Pleuronectidae","Pleuronectiformes",17927.811,28390
+"7","Pleuronectes quadrituberculatus","Alaska plaice",10285,"Pleuronectes","Pleuronectidae","Pleuronectiformes",11303.202,20443
+"8","Hippoglossus stenolepis","Pacific halibut",10120,"Hippoglossus","Pleuronectidae","Pleuronectiformes",4001.185,2086
+"9","Clupea pallasii","Pacific herring",21110,"Clupea","Clupeidae","Clupeiformes",1953.172,9181
+"10","Myoxocephalus polyacanthocephalus","great sculpin",21370,"Myoxocephalus","Cottidae","Perciformes",1922.843,708
+"11","Platichthys stellatus","starry flounder",10220,"Platichthys","Pleuronectidae","Pleuronectiformes",1862.433,1247
+"12","Glyptocephalus zachirus","rex sole",10200,"Glyptocephalus","Pleuronectidae","Pleuronectiformes",1674.815,3061
+"13","Sebastes alutus","Pacific ocean perch",30060,"Sebastes","Sebastidae","Perciformes",1354.206,1961
+"14","Lycodes brevipes","shortfin eelpout",24191,"Lycodes","Zoarcidae","Perciformes",1330.11,16502
+"15","Atheresthes evermanni","Kamchatka flounder",10112,"Atheresthes","Pleuronectidae","Pleuronectiformes",878.384,2068
+"16","Lycodes palearis","wattled eelpout",24185,"Lycodes","Zoarcidae","Perciformes",841.862,4821
+"17","Myoxocephalus jaok","plain sculpin",21371,"Myoxocephalus","Cottidae","Perciformes",815.7,1222
+"18","Hemilepidotus jordani","yellow Irish lord",21347,"Hemilepidotus","Cottidae","Perciformes",809.479,1264
+"19","Hemitripterus bolini","bigmouth sculpin",21420,"Hemitripterus","Hemitripteridae","Perciformes",714.364,141
+"20","Podothecus accipenserinus","sturgeon poacher",20040,"Podothecus","Agonidae","Perciformes",680.607,11866
+"21","Isopsetta isolepis","butter sole",10270,"Isopsetta","Pleuronectidae","Pleuronectiformes",379.788,1237
+"22","Lepidopsetta bilineata","southern rock sole",10262,"Lepidopsetta","Pleuronectidae","Pleuronectiformes",356.249,1226
+"23","Hippoglossoides robustus","Bering flounder",10140,"Hippoglossoides","Pleuronectidae","Pleuronectiformes",331.582,1583
+"24","Myzopsetta proboscidea","longhead dab",10211,"Myzopsetta","Pleuronectidae","Pleuronectiformes",200.028,2043
+"25","Reinhardtius hippoglossoides","Greenland turbot",10115,"Reinhardtius","Pleuronectidae","Pleuronectiformes",163.79,53
+"26","Liparis gibbus","variegated snailfish",22205,"Liparis","Liparidae","Perciformes",75.779,96
+"27","Anoplopoma fimbria","sablefish",20510,"Anoplopoma","Anoplopomatidae","Perciformes",72.925,62
+"28","Dasycottus setiger","spinyhead sculpin",21390,"Dasycottus","Psychrolutidae","Perciformes",69.16,496
+"29","Lycodes raridens","marbled eelpout",24184,"Lycodes","Zoarcidae","Perciformes",63.312,79
+"30","Bathymaster signatus","searcher",20720,"Bathymaster","Bathymasteridae","Perciformes",60.783,279
+"31","Gymnocanthus pistilliger","threaded sculpin",21314,"Gymnocanthus","Cottidae","Perciformes",50.856,1248
+"32","Myoxocephalus scorpius","shorthorn (=warty) sculpin",21368,"Myoxocephalus","Cottidae","Perciformes",31.831,31
+"33","Careproctus scottae","peachskin snailfish",22232,"Careproctus","Liparidae","Perciformes",23.913,88
+"34","Anarhichas orientalis","Bering wolffish",20322,"Anarhichas","Anarhichadidae","Perciformes",22.7,4
+"35","Sebastes aleutianus","rougheye rockfish",30051,"Sebastes","Sebastidae","Perciformes",20.29,22
+"36","Sarritor frenatus","sawback poacher",20006,"Sarritor","Agonidae","Perciformes",20.227,392
+"37","Icelus spiniger","thorny sculpin",21438,"Icelus","Cottidae","Perciformes",18.884,713
+"38","Sebastes polyspinis","northern rockfish",30420,"Sebastes","Sebastidae","Perciformes",16.739,19
+"39","Psettichthys melanostictus","sand sole",10250,"Psettichthys","Pleuronectidae","Pleuronectiformes",14.421,35
+"40","Pleurogrammus monopterygius","Atka mackerel",21921,"Pleurogrammus","Hexagrammidae","Perciformes",14.224,17
+"41","Triglops scepticus","spectacled sculpin",21354,"Triglops","Cottidae","Perciformes",11.043,353
+"42","Thaleichthys pacificus","eulachon",23010,"Thaleichthys","Osmeridae","Osmeriformes",10.28,206
+"43","Mallotus villosus","Pacific capelin",23041,"Mallotus","Osmeridae","Osmeriformes",9.933,474
+"44","Triglops macellus","roughspine sculpin",21356,"Triglops","Cottidae","Perciformes",9.535,145
+"45","Platichthys stellatus X Pleuronectes quadrituberculatus hybrid","hybrid starry flounder X Alaska plaice",10221,"Platichthys","Pleuronectidae","Pleuronectiformes",7.86,6
+"46","Trichodon trichodon","Pacific sandfish",21592,"Trichodon","Trichodontidae","Perciformes",7.299,73
+"47","Microstomus pacificus","Dover sole",10180,"Microstomus","Pleuronectidae","Pleuronectiformes",7.151,20
+"48","Sebastes variabilis","dusky rockfish",30152,"Sebastes","Sebastidae","Perciformes",6.12,5
+"49","Careproctus phasma","monster snailfish",22226,"Careproctus","Liparidae","Perciformes",5.881,160
+"50","Hexagrammos stelleri","whitespotted greenling",21932,"Hexagrammos","Hexagrammidae","Perciformes",5.835,129
+"51","Occella dodecaedron","Bering poacher",20061,"Occella","Agonidae","Perciformes",5.311,201
+"52","Triglops pingelii","ribbed sculpin",21355,"Triglops","Cottidae","Perciformes",5.091,139
+"53","Sebastes melanostictus","blackspotted rockfish",30052,"Sebastes","Sebastidae","Perciformes",4.956,6
+"54","Zaprora silenus","prowfish",24001,"Zaprora","Zaproridae","Perciformes",4.94,3
+"55","Aptocyclus ventricosus","smooth lumpsucker",22175,"Aptocyclus","Cyclopteridae","Perciformes",4.308,5
+"56","Icelinus borealis","northern sculpin",21311,"Icelinus","Cottidae","Perciformes",3.298,600
+"57","Oncorhynchus keta","chum salmon",23235,"Oncorhynchus","Salmonidae","Salmoniformes",3.25,1
+"58","Crystallichthys cyclospilus","blotched snailfish",22206,"Crystallichthys","Liparidae","Perciformes",3.041,10
+"59","Hexagrammos decagrammus","kelp greenling",21935,"Hexagrammos","Hexagrammidae","Perciformes",2.733,8
+"60","Careproctus rastrinus","salmon snailfish",22236,"Careproctus","Liparidae","Perciformes",2.177,8
+"61","Icelus spatula","spatulate sculpin",21441,"Icelus","Cottidae","Perciformes",2.033,188
+"62","Malacocottus zonurus","darkfin sculpin",21341,"Malacocottus","Psychrolutidae","Perciformes",1.458,11
+"63","Aspidophoroides monopterygius","Aleutian alligatorfish",20050,"Aspidophoroides","Agonidae","Perciformes",1.191,234
+"64","Hemilepidotus papilio","butterfly sculpin",21348,"Hemilepidotus","Cottidae","Perciformes",0.847,9
+"65","Podothecus veternus","veteran poacher",20041,"Podothecus","Agonidae","Perciformes",0.773,17
+"66","Boreogadus saida","Arctic cod",21725,"Boreogadus","Gadidae","Gadiformes",0.608,14
+"67","Limanda sakhalinensis","Sakhalin sole",10212,"Limanda","Pleuronectidae","Pleuronectiformes",0.485,15
+"68","Eleginus gracilis","saffron cod",21735,"Eleginus","Gadidae","Gadiformes",0.319,7
+"69","Leptoclinus maculatus","daubed shanny",23805,"Leptoclinus","Stichaeidae","Perciformes",0.228,26
+"70","Ammodytes sp.","sand lance unid.",20202,"Ammodytes","Ammodytidae","Perciformes",0.193,45
+"71","Lumpenus sagitta","snake prickleback",23808,"Lumpenus","Stichaeidae","Perciformes",0.189,6
+"72","Hexagrammidae","greenling unid.",21900,NA,"Hexagrammidae","Perciformes",0.132,1
+"73","Gymnocanthus galeatus","armorhead sculpin",21316,"Gymnocanthus","Cottidae","Perciformes",0.13,1
+"74","Liparis sp.",NA,22201,"Liparis","Liparidae","Perciformes",0.115,1
+"75","Artediellus pacificus","hookhorn sculpin",21333,"Artediellus","Cottidae","Perciformes",0.085,8
+"76","Liparidae","snailfish unid.",22200,NA,"Liparidae","Perciformes",0.081,30
+"77","Blepsias bilobus","crested sculpin",21397,"Blepsias","Hemitripteridae","Perciformes",0.066,1
+"78","Poroclinus rothrocki","whitebarred prickleback",23850,"Poroclinus","Stichaeidae","Perciformes",0.055,8
+"79","Ptilichthys goodei","quillfish",24005,"Ptilichthys","Ptilichthyidae","Perciformes",0.047,2
+"80","Gymnocanthus detrisus","purplegray sculpin",21329,"Gymnocanthus","Cottidae","Perciformes",0.04,1
+"81","Microgadus proximus","Pacific tomcod",21710,"Microgadus","Gadidae","Gadiformes",0.03,2
+"82","Bathyagonus alascanus","gray starsnout",20035,"Bathyagonus","Agonidae","Perciformes",0.023,3
+"83","Percis japonica","dragon poacher",20002,"Percis","Agonidae","Perciformes",0.016,1
+"84","Leptagonus decagonus","Atlantic poacher",20007,"Leptagonus","Agonidae","Perciformes",0.015,1
+"85","Lumpenus fabricii","slender eelblenny",23807,"Lumpenus","Stichaeidae","Perciformes",0.004,11
