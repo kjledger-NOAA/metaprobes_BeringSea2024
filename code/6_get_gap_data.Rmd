@@ -10,8 +10,11 @@ library(akfingapdata)
 library(tidyverse)
 library(keyring)
 library(kableExtra)
+library(ggplot2)
+library(scico)
 
-token <- create_token("~/Documents/orx-eDNA/kim_token.txt")
+
+#token <- create_token("~/Documents/orx-eDNA/kim_token.txt")
 ```
 
 ## metaprobe metadata 
@@ -73,10 +76,39 @@ metaprobe_catch <- all_catch %>%
   select(!X)
 
 #write.csv(metaprobe_catch, here("catch_outputs", "metaprobe_haul_catch.csv"))
-
-#metahauls_w_catch <- metaprobe_catch %>%
-#  left_join(fish)
 ```
+
+
+## start here to look at catch 
+```{r}
+metaprobe_catch <- read.csv(here("catch_outputs", "metaprobe_haul_catch.csv")) %>%
+  select(!X)
+```
+
+summary table
+```{r}
+catch_summary <- metaprobe_catch %>%
+  group_by(species_name, common_name) %>%
+  summarize(total_kg = sum(weight_kg),
+            total_n = sum(count),
+            n_hauls = n_distinct(haul)) %>%
+  arrange(desc(n_hauls))
+
+write.csv(catch_summary, here("catch_outputs","catch_summary.csv"), row.names = FALSE)
+```
+
+range and average number of species per haul 
+```{r}
+metaprobe_catch %>%
+  group_by(haul) %>%
+  summarize(n_taxa = n_distinct(common_name)) %>%
+  ungroup() %>%
+  summarize(min = min(n_taxa),
+            mean = mean(n_taxa),
+            max = max(n_taxa))
+```
+
+
 
 plot catch (kg)
 ```{r}
@@ -98,12 +130,17 @@ metaprobe_catch %>%
 ```
 
 ```{r}
-metaprobe_catch %>%
+scico_33 <- scico(33, palette = 'roma')
+#set.seed(123)  # optional, for reproducibility
+#scico_33_random <- sample(scico_33)
+
+catch_comp_plot <- metaprobe_catch %>%
   group_by(hauljoin) %>%
   mutate(total_kg = sum(weight_kg),
          prop_kg = weight_kg/total_kg) %>%
-  ggplot(aes(x=as.factor(hauljoin), y=prop_kg, fill=species_name)) +
+  ggplot(aes(x=as.factor(haul), y=prop_kg, fill=common_name)) +
   geom_bar(stat = "identity") + 
+  scale_fill_manual(values = scico_33) + 
   theme_bw() +
   labs(
     y = "proportion of catch weight",
@@ -115,6 +152,9 @@ metaprobe_catch %>%
     legend.position = "right",
     legend.title = element_blank()
   )
+catch_comp_plot
+
+ggsave(here("catch_outputs", "composition.png"), plot = catch_comp_plot, dpi = 300, width = 7, height = 4)
 ```
 
 plot just a single haul 
@@ -140,6 +180,30 @@ metaprobe_catch %>%
 ```
 
 
+just look at pollock vs pcod catch more closely
+```{r}
+metaprobe_catch %>%
+  filter(species_name %in% c("Gadus chalcogrammus", "Gadus macrocephalus")) %>%
+  group_by(hauljoin) %>%
+  mutate(total_kg = sum(weight_kg),
+         prop_kg = weight_kg/total_kg) %>%
+  ggplot(aes(x=as.factor(hauljoin), y=prop_kg, fill=species_name)) +
+  geom_bar(stat = "identity") + 
+  #scale_y_sqrt() + 
+  theme_bw() +
+  labs(
+    y = "weight (kg)",
+    x = "haul") + 
+  theme(
+    axis.text.x = element_text(angle = 90, hjust = 0.95),
+    legend.text = element_text(size = 8),
+    legend.key.size = unit(0.3, "cm"),
+    legend.position = "right",
+    legend.title = element_blank()
+  )
+```
+
+okay so the hauls we'd be more likely to get some pcod would be -23803 (), -23808, and -23810 
 
 plot catch (number)
 ```{r}
@@ -182,17 +246,4 @@ metahauls_w_catch %>%
 ```
 
 
-
-save a list of species caught in these hauls 
-```{r}
-bt_catch <- metahauls_w_catch %>% 
-  group_by(species_name, common_name, species_code, genus_taxon, family_taxon, order_taxon) %>%
-  summarise(total_kg = sum(weight_kg),
-            total_count = sum(count)) %>%
-  arrange(desc(total_kg))
-
-bt_catch
-
-#write.csv(bt_catch, here("catch_outputs", "haul_catch.csv"))
-```
 

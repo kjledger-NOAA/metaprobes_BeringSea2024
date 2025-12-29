@@ -1,0 +1,64 @@
+---
+title: "haul map"
+output: html_document
+date: "2025-12-23"
+---
+
+make a map of these trawl locations
+
+libraries 
+```{r}
+library(tidyverse)
+library(akgfmaps)
+library(sf)
+library(ggplot2)
+```
+
+
+```{r}
+#browseVignettes('akgfmaps')
+#?make_idw_map
+?get_base_layers
+
+ebs <- get_base_layers(select.region = "ebs", set.crs = 3338)
+#ebs <- get_base_layers(select.region = "ebs", set.crs = 4326)
+```
+
+```{r}
+metaprobe_hauls <- read.csv(here("catch_outputs", "metaprobe_haul_catch.csv")) %>%
+  select(hauljoin, haul, latitude_dd_start, longitude_dd_start, depth_m) %>%
+  unique()
+
+# Step 1: Convert to sf object (default CRS is WGS84, EPSG:4326)
+sites_sf <- st_as_sf(metaprobe_hauls, coords = c("longitude_dd_start", "latitude_dd_start"), crs = 4326)
+
+# Step 2: Transform to Alaska Albers Equal Area (EPSG:3338)
+sites_sf_3338 <- st_transform(sites_sf, crs = 3338)
+
+# Print the resulting spatial object
+print(sites_sf_3338)
+
+# Plot the points
+#ggplot() +
+#  geom_sf(data = sites_sf) +
+#  theme_minimal() #+
+#  #ggtitle("Points in Alaska Albers Equal Area Projection (EPSG:3338)")
+```
+
+```{r}
+#ebs_y <- ebs$plot.boundary$y
+ebs_y_mini <- c(700000, 1400000)
+
+ebs_plot <- ggplot() +
+  #geom_sf(data = ebs$survey.area) +
+  geom_sf(data = ebs$bathymetry) +
+  geom_sf(data = ebs$akland, fill = "grey70") +
+  geom_sf(data = sites_sf_3338, aes(color = depth_m)) +
+  scale_color_viridis_c(direction = -1, name = "Bottom Depth (m)") +
+  coord_sf(xlim = ebs$plot.boundary$x,
+           ylim = ebs_y_mini) +
+  theme_bw()
+ebs_plot
+
+ggsave(here("figures", "map.png"), plot = ebs_plot, dpi = 300, width = 6, height = 3)
+```

@@ -1,0 +1,46 @@
+﻿catch_species_name ,curated ,curated_common,eDNA_taxa,in_catch,in_eDNA
+NA,Ammodytes personatus,sandlance,Ammodytes personatus,no,yes
+Aspidophoroides monopterygius,Aspidophoroides monopterygius,Aleutian alligatorfish,Aspidophoroides monopterygius,yes,yes
+Atheresthes stomias,Atheresthes,Atheresthes,Atheresthes,yes,yes
+Atheresthes evermanni,Atheresthes,Atheresthes,Atheresthes,yes,yes
+NA,Bathyagonus,poacher,Bathyagonus,no,yes
+Bathymaster signatus,Bathymaster,searcher,Bathymaster,yes,yes
+Careproctus phasma,Careproctus,snailfish,Careproctus,yes,yes
+Careproctus scottae,Careproctus,snailfish,Careproctus,yes,yes
+Clupea pallasii,Clupea pallasii,Pacific herring,Clupea pallasii,yes,yes
+Dasycottus setiger,Dasycottus setiger,spinyhead sculpin,Dasycottus setiger,yes,yes
+Gadus chalcogrammus,Gadus,Gadus,Gadus chalcogrammus,yes,yes
+Gadus macrocephalus,Gadus,Gadus,Gadus macrocephalus,yes,yes
+NA,Gadus,Gadus,Gadus,NA,NA
+NA,Gasterosteus aculeatus,three-spine stickleback,Gasterosteus aculeatus,no,yes
+Glyptocephalus zachirus,Glyptocephalus zachirus,rex sole,Glyptocephalus zachirus,yes,yes
+Hemilepidotus jordani,Hemilepidotus,yellow Irish lord,Hemilepidotus,yes,yes
+Hemitripterus bolini,Hemitripterus bolini,bigmouth sculpin,Hemitripterus bolini,yes,yes
+Hippoglossoides elassodon,Hippoglossoides,Hippoglossoides,"Pleuronectidae (Hippoglossoides elassodon, Hippoglossoides robustus, or Limanda sakhalinensis)",yes,yes
+Hippoglossoides robustus,Hippoglossoides,Hippoglossoides,"Pleuronectidae (Hippoglossoides elassodon, Hippoglossoides robustus, or Limanda sakhalinensis)",yes,yes
+Hippoglossus stenolepis,Hippoglossus stenolepis,Pacific halibut,Hippoglossus stenolepis,yes,yes
+Icelus spatula,Icelus spatula,spatulate sculpin,Icelus spatula,yes,yes
+Icelus spiniger,Icelus spiniger,thorny sculpin,NA,yes,yes - but assigned to Cottidae
+Lepidopsetta polyxystra,Lepidopsetta,northern rock sole,Lepidopsetta,yes,yes
+Leptoclinus maculatus,Leptoclinus maculatus,daubed shanny,Leptoclinus maculatus,yes,yes
+Limanda aspera,Limanda aspera,yellowfin sole,Limanda aspera,yes,yes
+Lycodes brevipes,Lycodes brevipes,shortfin eelpout,Lycodes brevipes,yes,yes
+Lycodes palearis,Lycodes palearis,wattled eelpout,Lycodes palearis,yes,yes
+Malacocottus zonurus,Malacocottus,darkfin sculpin,Malacocottus,yes,yes
+NA,Microgadus proximus,Pacific tomcod ,Microgadus proximus,no,yes
+Myoxocephalus polyacanthocephalus,Myoxocephalus,great sculpin,Myoxocephalus,yes,yes
+NA,Oncorhynchus gorbuscha,pink salmon,Oncorhynchus gorbuscha,no,yes
+NA,Oncorhynchus keta,chum salmon,Oncorhynchus keta,no,yes
+NA,Oncorhynchus tshawytscha,chinook salmon,Oncorhynchus tshawytscha,no,yes
+NA,Platichthys stellatus,starry flounder,Platichthys stellatus,no,yes
+Pleuronectes quadrituberculatus,Pleuronectes quadrituberculatus,Alaska plaice,Pleuronectes quadrituberculatus,yes,yes
+Podothecus accipenserinus,Podothecus accipenserinus,sturgeon poacher,NA,yes,no
+Poroclinus rothrocki,Poroclinus rothrocki,whitebarred prickleback,NA,yes,no
+NA,Ptilichthys goodei,quillfish,Ptilichthys goodei,no,yes
+NA,Reinhardtius hippoglossoides,Greenland halibut,Reinhardtius hippoglossoides,no,yes
+Sarritor frenatus,Sarritor frenatus,sawback poacher,Sarritor,yes,yes
+Sebastes alutus,Sebastes,Sebastes,Sebastes,yes,yes
+Sebastes polyspinis,Sebastes,Sebastes,Sebastes,yes,yes
+NA,Sebastolobus,Sebastolobus,Sebastolobus,no,yes
+Triglops scepticus,Triglops scepticus,spectacled sculpin,Triglops scepticus,yes,yes
+Zaprora silenus,Zaprora silenus,prowfish,Zaprora silenus,yes,yes

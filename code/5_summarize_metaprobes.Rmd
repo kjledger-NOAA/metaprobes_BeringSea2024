@@ -9,6 +9,10 @@ libraries
 library(tidyverse)
 library(here)
 library(ggplot2)
+#devtools::install_github("thomasp85/scico")
+library(scico)
+library(vegan)
+library(reshape2)
 ```
 
 load decontaminated ASV table 
@@ -23,12 +27,8 @@ taxon_table <- asv_table %>%
   filter(taxon != "Acipenser fulvescens") %>% 
   group_by(extraction_ID, sample_type, sample_id, taxon, taxonomic_level, species, genus, family, order) %>%
   summarize(reads = sum(reads)) %>%
-  filter(reads > 0)
-
-taxon_table_summary <- taxon_table %>%
-  group_by(taxon, species, genus, family, order) %>%
-  summarize(total_reads = sum(reads)) %>%
-  arrange(desc(total_reads))
+  filter(reads > 0) #%>%
+  #mutate(taxon = ifelse(species == "Atheresthes evermanni", "Atheresthes evermanni", taxon)) ##should fix this in an earlier script 
 ```
 
 load sample metadata 
@@ -39,8 +39,26 @@ taxon_table_w_meta <- taxon_table %>%
   left_join(metadata)
 ```
 
+make a summary table of the species and reads - dont including any field blanks in this 
+```{r}
+taxon_table_summary <- taxon_table_w_meta %>%
+  filter(sample_type == "sample") %>%
+  group_by(taxon, species, genus, family, order) %>%
+  summarize(total_reads = sum(reads),
+            n_tech = n_distinct(sample_id),
+            n_extract = n_distinct(extraction_ID),
+            n_probes = n_distinct(alternative_ID)) %>%
+  arrange(desc(total_reads))
+
+write.csv(taxon_table_summary, here("metaprobe_outputs", "taxon_table_summary.csv"), row.names = F)
+```
+
+
+
 just start by comparing the samples/pcr-reps from the same haul 
 ```{r}
+scico_14 <- scico(14, palette = 'roma')
+
 taxon_table_w_meta %>%
   filter(haul == 187) %>%
   group_by(sample_id) %>%
@@ -48,6 +66,7 @@ taxon_table_w_meta %>%
          prop_reads = reads/total_reads) %>%
   ggplot(aes(x=sample_id, y=prop_reads, fill=taxon)) +
   geom_bar(stat = "identity") + 
+  scale_fill_manual(values = scico_14) + 
   theme_bw() +
   facet_wrap(~net, scales = "free") +
   labs(
@@ -64,52 +83,13 @@ taxon_table_w_meta %>%
 ```
 
 ```{r}
-taxon_table_w_meta %>%
-  filter(haul == 188) %>%
-  filter(!is.na(net)) %>%
+h187 <- taxon_table_w_meta %>%
+  filter(haul == 187) %>%
   group_by(sample_id) %>%
   mutate(total_reads = sum(reads),
-         prop_reads = reads/total_reads) %>%
-  ggplot(aes(x=sample_id, y=prop_reads, fill=taxon)) +
-  geom_bar(stat = "identity") + 
-  theme_bw() +
-  facet_wrap(~net, scales = "free") +
-  labs(
-    y = "proportion of sequencing reads",
-    x = "sample ID") + 
-  theme(
-    axis.text.x = element_text(angle = 90, hjust = 0.95),
-    legend.text = element_text(size = 8),
-    legend.key.size = unit(0.3, "cm"),
-    legend.position = "right",
-    #legend.position = "none",
-    legend.title = element_blank()
-  )
+         prop_reads = reads/total_reads)
 ```
 
-```{r}
-taxon_table_w_meta %>%
-  filter(haul == 189) %>%
-  filter(!is.na(net)) %>%
-  group_by(sample_id) %>%
-  mutate(total_reads = sum(reads),
-         prop_reads = reads/total_reads) %>%
-  ggplot(aes(x=sample_id, y=prop_reads, fill=taxon)) +
-  geom_bar(stat = "identity") + 
-  theme_bw() +
-  facet_wrap(~net, scales = "free") +
-  labs(
-    y = "proportion of sequencing reads",
-    x = "sample ID") + 
-  theme(
-    axis.text.x = element_text(angle = 90, hjust = 0.95),
-    legend.text = element_text(size = 8),
-    legend.key.size = unit(0.3, "cm"),
-    legend.position = "right",
-    #legend.position = "none",
-    legend.title = element_blank()
-  )
-```
 
 zoom in on some taxa - see what assignments might need updating 
 ```{r}
@@ -132,12 +112,256 @@ gadus
 # 917.214 kg pcod 
 917.214 / (18078.545+917.214)
 ```
-very similar pollock proportions, unassigned gadus reads likely mostly pcod... 
+very similar pollock proportions, unassigned gadus reads likely mostly pcod...?? 
+
+okay, next step will need to be taking the mean of the extraction/pcr replicates for samples.
+first, i will quantify the dissimilarity and then if all are fairly similar, then take mean, otherwise look closer at taxonomic assignments (maybe some tax level issues causing mismatches) and maybe drop a replicate before taking means. 
+
+
+instead of filtering by the biological replicates, i need to filter by the unique extractions.  the 'dist_to_centroid' function later on doesn't like the different number of replicates or that there are so many for a few.. not sure exactly. 
+
+how many pcr replicates does each sample have? 
+```{r}
+onerep <- taxon_table_w_meta  %>%
+  group_by(alternative_ID) %>%
+  summarise(nrep = n_distinct(sample_id)) %>%
+  #filter(nrep == 2) 
+  filter(nrep == 1)
+```
+
+remove the extraction with only one pcr rep from the data frame - these are all field blanks! 
+```{r}
+temp_table <- taxon_table_w_meta %>%
+  filter(!alternative_ID %in% onerep$alternative_ID)
+```
+
+
+first, i'll calculate read proportions
+```{r}
+normalized <- temp_table %>%
+  group_by(sample_id) %>%
+  mutate(Tot = sum(reads),
+         Prop_reads = reads/Tot)
+
+#add a new sample id column that also includes the location - will use this for dissimilarity measures
+normalized <- normalized %>%
+  unite(site_biorep, haul, alternative_ID, sep = "_", remove = FALSE) %>%
+  unite(new_ID, site_biorep, sample_id, sep = "-", remove = FALSE)
+```
+
 
 ```{r}
+tibble_to_matrix <- function (tb) {
+  
+  tb %>%
+  #normalized %>%
+    group_by(new_ID, taxon) %>% 
+    summarise(nReads = sum(Prop_reads)) %>% 
+    spread ( key = "taxon", value = "nReads", fill = 0) %>%
+    ungroup() -> matrix_1
+    samples <- pull (matrix_1, new_ID)
+    matrix_1[,-1] -> matrix_1
+    data.matrix(matrix_1) -> matrix_1
+    dimnames(matrix_1)[[1]] <- samples
+    vegdist(matrix_1) -> matrix_1
+}
 
 ```
 
+
+```{r}
+all.distances.full <- tibble_to_matrix(normalized)
+
+# Do all samples have a name?
+summary(is.na(names(all.distances.full)))
+```
+
+make the pairwise distances a long table
+```{r}
+as_tibble(subset(melt(as.matrix(all.distances.full)))) -> all.distances.melted
+
+# Any major screw ups
+summary(is.na(all.distances.melted$value))
+
+# Now, create a three variables for all distances, they could be PCR replicates, BIOL replicates, or from the same site
+all.distances.melted %>%
+  separate (Var1, into = "Metaprobe1", sep = "\\-", remove = FALSE) %>%
+  separate (Metaprobe1, into = "Haul1", remove = FALSE) %>%
+  separate (Var2, into ="Metaprobe2", sep = "\\-", remove = FALSE) %>%
+  separate (Metaprobe2, into = "Haul2", remove = FALSE) %>%
+  mutate ( #Day.site1 = str_sub(Bottle1, start = 1, end = -2),
+           #Day.site2 = str_sub(Bottle2, start = 1, end = -2),
+           Distance.type = case_when( Metaprobe1 == Metaprobe2 ~ "Tech.replicates",
+                                      #Day.site1 == Day.site2 ~ "Biol.replicates",
+                                      Haul1 == Haul2 ~ "Same Haul",
+                                      TRUE ~ "Different Haul"
+                                     )) %>%
+  dplyr::select(Sample1 = Var1, Sample2 = Var2 , value , Distance.type) %>%
+  filter (Sample1 != Sample2) -> all.distances.to.plot
+
+# Checking all went well
+sapply(all.distances.to.plot, function(x) summary(is.na(x)))
+```
+
+```{r}
+all.distances.to.plot$Distance.type <- all.distances.to.plot$Distance.type  %>% fct_relevel("Tech.replicates", "Same Haul")
+
+ggplot (all.distances.to.plot) +
+  geom_histogram (aes (fill = Distance.type, x = value, after_stat(ndensity)), position = "dodge",  alpha = 0.9, bins = 50) +
+  facet_wrap( ~ Distance.type) +
+  labs (x = "Pairwise dissimilarity", y = "density" ,
+        Distance.type = "Distance") +
+    guides (fill = "none")
+```
+
+let me just look closer at the technical replicates with > 0.25 dissimilarity 
+```{r}
+check <- all.distances.to.plot %>%
+  filter(Distance.type == "Tech.replicates") %>%
+  filter(value > 0.25)
+
+id_counts <- check %>%
+  pivot_longer(
+    cols = c(Sample1, Sample2),
+    names_to = "which_sample",
+    values_to = "ID"
+  ) %>%
+  count(ID, name = "n")
+id_counts
+```
+
+check these hauls and specifically consider removing the above id's 
+- note many are the field blanks! 
+
+```{r}
+scico_pal <- scico(24, palette = 'roma')
+
+taxon_table_w_meta %>%
+  filter(haul %in% c(187, 188, 190)) %>%
+  group_by(sample_id) %>%
+  mutate(total_reads = sum(reads),
+         prop_reads = reads/total_reads) %>%
+  ggplot(aes(x=sample_id, y=prop_reads, fill=taxon)) +
+  geom_bar(stat = "identity") + 
+  scale_fill_manual(values = scico_pal) + 
+  theme_bw() +
+  facet_wrap(~net, scales = "free") +
+  labs(
+    y = "proportion of sequencing reads",
+    x = "sample ID") + 
+  theme(
+    axis.text.x = element_text(angle = 90, hjust = 0.95),
+    legend.text = element_text(size = 8),
+    legend.key.size = unit(0.3, "cm"),
+    legend.position = "right",
+    #legend.position = "none",
+    legend.title = element_blank()
+  )
+```
+
+too high dissim. among all haul 187 ctd roof samples to include... 
+188 ctd is fine 
+remove e05114-B from 192 cod-end: or could update tax assignment to match others... 
+
+look at these
+```{r}
+taxon_table_w_meta %>%
+  filter(haul %in% c(187, 188, 190)) %>%
+  group_by(sample_id) %>%
+  mutate(total_reads = sum(reads),
+         prop_reads = reads/total_reads) %>%
+  filter(taxon %in% c("Gadus chalcogrammus", "Gadus")) %>%
+  select(sample_id, taxon, prop_reads)
+```
+
+
+hmm.. we seem to be losing all signature of pcod. it's there but being lumped with pollock. to help with the interpretation of this study, best to lump all gadus... 
+
+
+add a filter to remove the very very rare species - i.e. spp that never make up more that 1% of reads in any technical replicate
+```{r}
+remove_rare_ids <- taxon_table_w_meta %>%
+  group_by(sample_id) %>%
+  mutate(total_reads = sum(reads),
+         prop_reads = reads/total_reads) %>%
+  filter(prop_reads > 0.005)
+```
+
+filter results and take mean of technical replicates from the same metaprobe
+```{r}
+mean_taxon_table_w_meta <- remove_rare_ids %>%
+  filter(alternative_ID != "202401_162_187_2") %>%
+  filter(sample_id != "e05114-B") %>%
+  group_by(sample_id) %>%
+  mutate(total_reads = sum(reads),
+         prop_reads = reads/total_reads) %>%
+  ungroup() %>%
+  group_by(alternative_ID, sample_type, taxon, haul, net) %>%
+  summarize(mean_prop = mean(prop_reads))
+
+mean_taxon_table_w_meta %>%
+  filter(haul %in% c(187, 188, 190)) %>%
+  ggplot(aes(x=alternative_ID, y=mean_prop, fill=taxon)) +
+  geom_bar(stat = "identity") +
+  scale_fill_manual(values = scico_pal) +
+  theme_bw() +
+  facet_wrap(~net, scales = "free") +
+  labs(
+    y = "proportion of sequencing reads",
+    x = "sample ID") +
+  theme(
+    axis.text.x = element_text(angle = 90, hjust = 0.95),
+    legend.text = element_text(size = 8),
+    legend.key.size = unit(0.3, "cm"),
+    legend.position = "right",
+    #legend.position = "none",
+    legend.title = element_blank()
+  )
+```
+
+pivot table wide into a sample by taxon dataframe - save metadata in seperate df 
+```{r}
+wide_df <- mean_taxon_table_w_meta %>% 
+  pivot_wider(names_from = "taxon", values_from = "mean_prop", values_fill = 0) %>%
+  filter(sample_type == "sample")
+
+wide_meta <- wide_df[,c(1:4)]
+wide_prop <- wide_df[,-c(1:4)] %>% select(!`Gadus macrocephalus`) ## no reads for pcod 
+```
+
+note: the Gadus is likely pollock..? or look at catch and decide if i need to call all chalco and macro reads gadus... 
+
+use bray-curtis distance matrix 
+```{r}
+dist <- vegdist(wide_prop, method = "bray")
+
+as_tibble(subset(melt(as.matrix(dist)))) -> distances.melted
+
+wide_meta$VarID = c(1:33)
+
+dist_df <- distances.melted %>%
+  left_join(wide_meta, by = c("Var1" = "VarID")) %>%
+  select(haul, net, value, Var2) %>%
+  rename(haul1 = haul) %>%
+  rename(net1 = net) %>%
+  mutate(id1 = paste(haul1, net1, sep = "_")) %>%
+  left_join(wide_meta, by = c("Var2" = "VarID")) %>%
+  select(haul1, net1, id1, value, haul, net) %>%
+  rename(haul2 = haul) %>%
+  rename(net2 = net) %>%
+  mutate(id2 = paste(haul2, net2, sep = "_")) %>%
+  filter(id1 != id2) %>%
+  mutate(pair_type = if_else(haul1 == haul2,
+                             "within_haul",
+                             "between_haul"))
+
+ggplot (dist_df) +
+  geom_histogram (aes (fill = pair_type, x = value, after_stat(ndensity)), position = "dodge",  alpha = 0.9, bins = 50) +
+  facet_wrap( ~ pair_type) +
+  labs (x = "pairwise dissimilarity", y = "density" ,
+        Distance.type = "Distance") +
+    guides (fill = "none")
+```
 
 
 

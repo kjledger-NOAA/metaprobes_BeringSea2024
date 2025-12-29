@@ -375,14 +375,19 @@ uncollapsed_taxonomy <- sorted_tax_df %>%
 ``` 
 
 add in some additional manual curation:
+
 ```{r}
 curated_taxonomy <- uncollapsed_taxonomy %>%
-  mutate(taxon = ifelse(taxon == "Atheresthes evermanni", "Atheresthes", taxon), ##lump Atheresthes all together b/c few spp-level asv ids 
+  mutate(species = ifelse(taxon == "Atheresthes evermanni", NA, species),
+         taxon = ifelse(taxon == "Atheresthes evermanni", "Atheresthes", taxon), ##lump Atheresthes all together b/c few spp-level asv ids 
          taxonomic_level = ifelse(taxon == "Atheresthes evermanni", "genus", taxonomic_level), 
+         
          taxon = ifelse(ASV == "ASV112", "Pleuronectes quadrituberculatus", taxon),
          taxonomic_level = ifelse(ASV == "ASV112", "species", taxonomic_level),
          taxon = ifelse(ASV == "ASV208", "Hemitripterus bolini", taxon),
-         taxonomic_level = ifelse(ASV == "ASV208", "species", taxonomic_level))
+         taxonomic_level = ifelse(ASV == "ASV208", "species", taxonomic_level)) %>%
+  mutate(taxon = ifelse(ASV == "ASV181", "Careproctus", taxon),   ## all Careproctus to genus
+         taxonomic_level = ifelse(ASV == "ASV181", "genus", taxonomic_level))
 
 rows_to_remove_1 <- curated_taxonomy %>%
   filter(ASV == "ASV112" & species == "Platichthys stellatus") 
@@ -398,7 +403,7 @@ notes:
 Agonidae = Leptagonus decagonus or Sarritor frenatus
 Pleuronectidae = Hippoglossoides elassodon, Hippoglossoides robustus, or Limanda sakhalinensis
 Cottidae = a variety of different sculpin groupings 
-Lycodes - mostly Lycodes brevipes but also some Lycodes palearis
+Lycodes = mostly Lycodes brevipes but also some Lycodes palearis
 
 ```{r}
 # and then collapse that down to just a single taxon per ASV
