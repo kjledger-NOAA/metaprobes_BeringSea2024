@@ -111,11 +111,6 @@ out_range_df <- spp_distribution_range %>%
   filter(!Species %in% in_range_df$Species)
 ```
 
-depending on what ecosystem is used to filter, some taxa should be retained: 
-"Ammodytes personatus", "Oncorhynchus kisutch", "Oncorhynchus nerka", "Oncorhynchus tshawytscha"
-
-but using "Pacific Ocean" might be too inclusive?  
-
 ## put all non-fish in their own table
 ```{r}
 not_Actinopteri <- tax_df %>%
@@ -378,25 +373,28 @@ add in some additional manual curation:
 
 ```{r}
 curated_taxonomy <- uncollapsed_taxonomy %>%
-  mutate(species = ifelse(taxon == "Atheresthes evermanni", NA, species),
-         taxon = ifelse(taxon == "Atheresthes evermanni", "Atheresthes", taxon), ##lump Atheresthes all together b/c few spp-level asv ids 
-         taxonomic_level = ifelse(taxon == "Atheresthes evermanni", "genus", taxonomic_level), 
-         
+  mutate(taxon = ifelse(taxon == "Atheresthes evermanni", "Atheresthes", taxon), ##lump Atheresthes all together b/c few spp-level asv ids 
+         taxonomic_level = ifelse(taxon == "Atheresthes", "genus", taxonomic_level), 
          taxon = ifelse(ASV == "ASV112", "Pleuronectes quadrituberculatus", taxon),
          taxonomic_level = ifelse(ASV == "ASV112", "species", taxonomic_level),
          taxon = ifelse(ASV == "ASV208", "Hemitripterus bolini", taxon),
          taxonomic_level = ifelse(ASV == "ASV208", "species", taxonomic_level)) %>%
   mutate(taxon = ifelse(ASV == "ASV181", "Careproctus", taxon),   ## all Careproctus to genus
-         taxonomic_level = ifelse(ASV == "ASV181", "genus", taxonomic_level))
+         taxonomic_level = ifelse(ASV == "ASV181", "genus", taxonomic_level)) %>%
+  mutate(taxon = ifelse(taxon == "Pleuronectidae", "Hippoglossoides", taxon),
+         taxonomic_level = ifelse(taxon == "Hippoglossoides", "genus", taxonomic_level))  ## change Pleuronectidae to Hippoglossoides 
 
 rows_to_remove_1 <- curated_taxonomy %>%
   filter(ASV == "ASV112" & species == "Platichthys stellatus") 
 rows_to_remove_2 <- curated_taxonomy %>%
   filter(ASV == "ASV208" & species != "Hemitripterus bolini") 
+rows_to_remove_3 <- curated_taxonomy %>%
+  filter(taxon == "Hippoglossoides" & genus == "Limanda") 
 
 curated_taxonomy_2 <- curated_taxonomy %>%
   anti_join(rows_to_remove_1) %>%
-  anti_join(rows_to_remove_2)
+  anti_join(rows_to_remove_2) %>%
+  anti_join(rows_to_remove_3)
 ```
 
 notes:

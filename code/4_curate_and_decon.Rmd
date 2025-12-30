@@ -40,13 +40,11 @@ mismatches_species <- mismatches %>%
 keeper_1 <- mismatches_species$ASV
 
 mismatches_parent_notspecies <- mismatches %>%
-  filter(!str_detect(parent_taxon, " ")) %>%
-## use ASV_taxon for these too, except when parent_taxon == "Pleuronectidae"
-  filter(parent_taxon == "Pleuronectidae")
+  filter(!str_detect(parent_taxon, " "))
+## use ASV_taxon for these too
 
 keeper_2 <- mismatches_parent_notspecies$ASV
 keeper_all <- unique(c(keeper_1, keeper_2))
-
 ## otherwise, use the parent ASV id  
 ```
 
@@ -403,5 +401,3 @@ track <- track %>%
 
 #write.csv(track, here("decon_outputs", "track.csv"))
 ```
-
-

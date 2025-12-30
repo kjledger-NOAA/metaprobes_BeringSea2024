@@ -27,19 +27,23 @@ taxon_table <- asv_table %>%
   filter(taxon != "Acipenser fulvescens") %>% 
   group_by(extraction_ID, sample_type, sample_id, taxon, taxonomic_level, species, genus, family, order) %>%
   summarize(reads = sum(reads)) %>%
-  filter(reads > 0) #%>%
-  #mutate(taxon = ifelse(species == "Atheresthes evermanni", "Atheresthes evermanni", taxon)) ##should fix this in an earlier script 
+  filter(reads > 0)
 ```
 
 load sample metadata 
 ```{r}
 metadata <- read.csv(here("BeringSea2024_metaprobes_metadata.csv"))
 
+# get depth from catch data 
+catch <- read.csv(here("catch_outputs", "metaprobe_haul_catch.csv")) %>%
+  select(haul, depth_m) %>% unique()
+
 taxon_table_w_meta <- taxon_table %>% 
-  left_join(metadata)
+  left_join(metadata) %>%
+  left_join(catch, by = "haul")
 ```
 
-make a summary table of the species and reads - dont including any field blanks in this 
+make a summary table of the species and reads - not including any field blanks in this 
 ```{r}
 taxon_table_summary <- taxon_table_w_meta %>%
   filter(sample_type == "sample") %>%
@@ -49,51 +53,49 @@ taxon_table_summary <- taxon_table_w_meta %>%
             n_extract = n_distinct(extraction_ID),
             n_probes = n_distinct(alternative_ID)) %>%
   arrange(desc(total_reads))
+```
 
-write.csv(taxon_table_summary, here("metaprobe_outputs", "taxon_table_summary.csv"), row.names = F)
+remove a few assignments that have few reads and are at poor taxonomic resolution (probably sequencing errors from species that are actually identified)
+```{r}
+## check if family level assignments are always with species/genus assignmetns...
+samples_w_Cottidae <- taxon_table_w_meta %>% 
+  filter(taxon == "Cottidae") 
+
+taxon_table_Cottidae <- taxon_table_w_meta %>% 
+  filter(sample_id %in% samples_w_Cottidae$sample_id)
+
+## filter
+taxon_table_filtered <- taxon_table_w_meta %>%
+  filter(!taxon %in% c("Lycodes", "Cottidae"))
 ```
 
 
-
-just start by comparing the samples/pcr-reps from the same haul 
 ```{r}
-scico_14 <- scico(14, palette = 'roma')
+taxon_table_summary <- taxon_table_filtered %>%
+  filter(sample_type == "sample") %>%
+  group_by(taxon, species, genus, family, order) %>%
+  summarize(total_reads = sum(reads),
+            n_tech = n_distinct(sample_id),
+            n_extract = n_distinct(extraction_ID),
+            n_probes = n_distinct(alternative_ID)) %>%
+  arrange(desc(total_reads))
 
-taxon_table_w_meta %>%
-  filter(haul == 187) %>%
-  group_by(sample_id) %>%
-  mutate(total_reads = sum(reads),
-         prop_reads = reads/total_reads) %>%
-  ggplot(aes(x=sample_id, y=prop_reads, fill=taxon)) +
-  geom_bar(stat = "identity") + 
-  scale_fill_manual(values = scico_14) + 
-  theme_bw() +
-  facet_wrap(~net, scales = "free") +
-  labs(
-    y = "proportion of sequencing reads",
-    x = "sample ID") + 
-  theme(
-    axis.text.x = element_text(angle = 90, hjust = 0.95),
-    legend.text = element_text(size = 8),
-    legend.key.size = unit(0.3, "cm"),
-    legend.position = "right",
-    #legend.position = "none",
-    legend.title = element_blank()
-  )
+#write.csv(taxon_table_summary, here("metaprobe_outputs", "taxon_table_summary.csv"), row.names = F)
 ```
 
 ```{r}
-h187 <- taxon_table_w_meta %>%
-  filter(haul == 187) %>%
-  group_by(sample_id) %>%
-  mutate(total_reads = sum(reads),
-         prop_reads = reads/total_reads)
+taxon_table_filtered %>%
+  group_by(haul) %>%
+  summarize(n_taxa = n_distinct(taxon)) %>%
+  ungroup() %>%
+  summarize(min = min(n_taxa),
+            mean = mean(n_taxa),
+            max = max(n_taxa))
 ```
 
-
-zoom in on some taxa - see what assignments might need updating 
+take a closer look at gadus... 
 ```{r}
-gadus <- taxon_table_w_meta %>%
+gadus <- taxon_table_filtered %>%
   filter(genus == "Gadus") %>%
   group_by(taxon) %>%
   summarise(total_reads = sum(reads))
@@ -112,7 +114,47 @@ gadus
 # 917.214 kg pcod 
 917.214 / (18078.545+917.214)
 ```
-very similar pollock proportions, unassigned gadus reads likely mostly pcod...?? 
+
+
+lump the gadus reads
+```{r}
+taxon_table_2 <- taxon_table_filtered %>%
+  mutate(taxon = ifelse(taxon == "Gadus chalcogrammus", "Gadus", taxon),
+         taxon = ifelse(taxon == "Gadus macrocephalus", "Gadus", taxon),
+         taxonomic_level = ifelse(taxon == "Gadus", "genus", taxon),
+         species = ifelse(taxon == "Gadus", NA, species)) %>%
+  group_by(extraction_ID, sample_type, sample_id, taxon, taxonomic_level, species, genus, family, order, alternative_ID, haul, net, depth_m) %>%
+  summarize(reads = sum(reads))
+```
+
+
+
+just start by comparing the samples/pcr-reps from the same haul 
+```{r}
+scico_pal <- scico(16, palette = 'roma') ## may need to change pal# depending on haul being plotted 
+
+taxon_table_2 %>%
+  filter(haul == 190) %>%
+  group_by(sample_id) %>%
+  mutate(total_reads = sum(reads),
+         prop_reads = reads/total_reads) %>%
+  ggplot(aes(x=sample_id, y=prop_reads, fill=taxon)) +
+  geom_bar(stat = "identity") + 
+  scale_fill_manual(values = scico_pal) + 
+  theme_bw() +
+  facet_wrap(~net, scales = "free") +
+  labs(
+    y = "proportion of sequencing reads",
+    x = "sample ID") + 
+  theme(
+    axis.text.x = element_text(angle = 90, hjust = 0.95),
+    legend.text = element_text(size = 8),
+    legend.key.size = unit(0.3, "cm"),
+    legend.position = "right",
+    legend.title = element_blank()
+  )
+```
+
 
 okay, next step will need to be taking the mean of the extraction/pcr replicates for samples.
 first, i will quantify the dissimilarity and then if all are fairly similar, then take mean, otherwise look closer at taxonomic assignments (maybe some tax level issues causing mismatches) and maybe drop a replicate before taking means. 
@@ -122,7 +164,7 @@ instead of filtering by the biological replicates, i need to filter by the uniqu
 
 how many pcr replicates does each sample have? 
 ```{r}
-onerep <- taxon_table_w_meta  %>%
+onerep <- taxon_table_2  %>%
   group_by(alternative_ID) %>%
   summarise(nrep = n_distinct(sample_id)) %>%
   #filter(nrep == 2) 
@@ -134,7 +176,6 @@ remove the extraction with only one pcr rep from the data frame - these are all 
 temp_table <- taxon_table_w_meta %>%
   filter(!alternative_ID %in% onerep$alternative_ID)
 ```
-
 
 first, i'll calculate read proportions
 ```{r}
@@ -214,6 +255,8 @@ ggplot (all.distances.to.plot) +
     guides (fill = "none")
 ```
 
+note: eventually, it may be a good idea to separate the tech reps into extraction vs pcr replictes 
+
 let me just look closer at the technical replicates with > 0.25 dissimilarity 
 ```{r}
 check <- all.distances.to.plot %>%
@@ -236,8 +279,9 @@ check these hauls and specifically consider removing the above id's
 ```{r}
 scico_pal <- scico(24, palette = 'roma')
 
-taxon_table_w_meta %>%
-  filter(haul %in% c(187, 188, 190)) %>%
+taxon_table_2 %>%
+  filter(haul %in% c(198)) %>%
+  filter(!is.na(net)) %>%
   group_by(sample_id) %>%
   mutate(total_reads = sum(reads),
          prop_reads = reads/total_reads) %>%
@@ -259,110 +303,405 @@ taxon_table_w_meta %>%
   )
 ```
 
-too high dissim. among all haul 187 ctd roof samples to include... 
-188 ctd is fine 
-remove e05114-B from 192 cod-end: or could update tax assignment to match others... 
-
-look at these
-```{r}
-taxon_table_w_meta %>%
-  filter(haul %in% c(187, 188, 190)) %>%
-  group_by(sample_id) %>%
-  mutate(total_reads = sum(reads),
-         prop_reads = reads/total_reads) %>%
-  filter(taxon %in% c("Gadus chalcogrammus", "Gadus")) %>%
-  select(sample_id, taxon, prop_reads)
-```
-
-
-hmm.. we seem to be losing all signature of pcod. it's there but being lumped with pollock. to help with the interpretation of this study, best to lump all gadus... 
-
+not going to remove any pcr reps for dissimilarity 
 
 add a filter to remove the very very rare species - i.e. spp that never make up more that 1% of reads in any technical replicate
 ```{r}
-remove_rare_ids <- taxon_table_w_meta %>%
-  group_by(sample_id) %>%
-  mutate(total_reads = sum(reads),
-         prop_reads = reads/total_reads) %>%
-  filter(prop_reads > 0.005)
+#remove_rare_ids <- taxon_table_2 %>%
+#  group_by(sample_id) %>%
+#  mutate(total_reads = sum(reads),
+#         prop_reads = reads/total_reads) %>%
+#  filter(prop_reads > 0.005)
 ```
 
 filter results and take mean of technical replicates from the same metaprobe
 ```{r}
-mean_taxon_table_w_meta <- remove_rare_ids %>%
-  filter(alternative_ID != "202401_162_187_2") %>%
-  filter(sample_id != "e05114-B") %>%
+mean_taxon_table <- taxon_table_2 %>%
   group_by(sample_id) %>%
   mutate(total_reads = sum(reads),
          prop_reads = reads/total_reads) %>%
   ungroup() %>%
-  group_by(alternative_ID, sample_type, taxon, haul, net) %>%
-  summarize(mean_prop = mean(prop_reads))
+  group_by(alternative_ID, sample_type, taxon, haul, net, depth_m) %>%
+  summarize(simple_mean = mean(prop_reads)) %>%
+  ungroup() %>%
+  group_by(alternative_ID) %>%
+  mutate(simple_total = sum(simple_mean),
+         normalized_mean = simple_mean/simple_total)
 
-mean_taxon_table_w_meta %>%
-  filter(haul %in% c(187, 188, 190)) %>%
-  ggplot(aes(x=alternative_ID, y=mean_prop, fill=taxon)) +
-  geom_bar(stat = "identity") +
-  scale_fill_manual(values = scico_pal) +
+#check
+#mean_taxon_table %>%
+#  group_by(alternative_ID) %>%
+#  summarize(sum_mean_prop = sum(normalized_mean))
+```
+
+
+plot some 
+```{r}
+scico_pal <- scico(27, palette = 'roma')
+
+example_hauls <- mean_taxon_table %>%
+  filter(haul %in% c(196, 198, 201, 195)) %>%
+  filter(!is.na(net)) %>%
+  #mutate(temp_id = paste0(haul, "_", net)) %>%  # combine haul and net
+  ggplot(aes(x=net, y=normalized_mean, fill=taxon)) +
+  geom_bar(stat = "identity") + 
+  scale_fill_manual(values = scico_pal) + 
   theme_bw() +
-  facet_wrap(~net, scales = "free") +
+  facet_wrap(~haul, scales = "free") +
   labs(
     y = "proportion of sequencing reads",
-    x = "sample ID") +
+    x = "") + 
   theme(
-    axis.text.x = element_text(angle = 90, hjust = 0.95),
+    axis.text.x = element_text(angle = 45, hjust = 0.95),
     legend.text = element_text(size = 8),
     legend.key.size = unit(0.3, "cm"),
     legend.position = "right",
     #legend.position = "none",
     legend.title = element_blank()
   )
+example_hauls 
+
+ggsave(here("figures", "metaprobe_hauls.png"), plot = example_hauls, dpi = 300, width = 9, height = 5)
 ```
 
-pivot table wide into a sample by taxon dataframe - save metadata in seperate df 
+
+pivot table wide into a sample by taxon data frame - save metadata in separate df 
 ```{r}
-wide_df <- mean_taxon_table_w_meta %>% 
-  pivot_wider(names_from = "taxon", values_from = "mean_prop", values_fill = 0) %>%
-  filter(sample_type == "sample")
+wide_df <- mean_taxon_table %>% 
+  select(!simple_total) %>%
+  select(!simple_mean) %>%
+  filter(sample_type == "sample") %>%
+  pivot_wider(names_from = "taxon", values_from = "normalized_mean", values_fill = 0)
+  
+wide_meta <- wide_df[,c(1:5)]
+wide_prop <- wide_df[,-c(1:5)]
 
-wide_meta <- wide_df[,c(1:4)]
-wide_prop <- wide_df[,-c(1:4)] %>% select(!`Gadus macrocephalus`) ## no reads for pcod 
+wide_meta$var_ID = as.factor(c(1:34))
 ```
 
-note: the Gadus is likely pollock..? or look at catch and decide if i need to call all chalco and macro reads gadus... 
+save wide_df to use when comparing to catch 
+```{r}
+#write.csv(wide_df, here("metaprobe_outputs", "taxon_wide.csv"))
+```
 
+test whether codend vs headrope differ while accounting for site-level pairings 
 use bray-curtis distance matrix 
 ```{r}
-dist <- vegdist(wide_prop, method = "bray")
+adonis2(wide_prop ~ net,
+        data = wide_meta,
+        strata = wide_meta$haul,
+        method = "bray")
 
-as_tibble(subset(melt(as.matrix(dist)))) -> distances.melted
+adonis2(wide_prop ~ net,
+        data = wide_meta,
+        strata = wide_meta$haul,
+        method = "jaccard")
+```
 
-wide_meta$VarID = c(1:33)
+weak evidence that community composition differ between metaprobes after accounting for haul-level pairings 
+metaprobe location explains about 5% of the variation in community composition 
 
-dist_df <- distances.melted %>%
-  left_join(wide_meta, by = c("Var1" = "VarID")) %>%
-  select(haul, net, value, Var2) %>%
-  rename(haul1 = haul) %>%
-  rename(net1 = net) %>%
-  mutate(id1 = paste(haul1, net1, sep = "_")) %>%
-  left_join(wide_meta, by = c("Var2" = "VarID")) %>%
-  select(haul1, net1, id1, value, haul, net) %>%
-  rename(haul2 = haul) %>%
-  rename(net2 = net) %>%
-  mutate(id2 = paste(haul2, net2, sep = "_")) %>%
-  filter(id1 != id2) %>%
-  mutate(pair_type = if_else(haul1 == haul2,
-                             "within_haul",
-                             "between_haul"))
-
-ggplot (dist_df) +
-  geom_histogram (aes (fill = pair_type, x = value, after_stat(ndensity)), position = "dodge",  alpha = 0.9, bins = 50) +
-  facet_wrap( ~ pair_type) +
-  labs (x = "pairwise dissimilarity", y = "density" ,
-        Distance.type = "Distance") +
-    guides (fill = "none")
+```{r}
+# with depth
+adonis2(wide_prop ~ net + depth_m,
+        data   = wide_meta,
+        strata = wide_meta$haul,
+        method = "bray",
+        by = "term")
 ```
 
 
 
+but check dispersion 
+```{r}
+bd_bray <- betadisper(vegdist(wide_prop, "bray"), wide_meta$net)
+permutest(bd_bray, strata = wide_meta$haul)
 
+plot(bd_bray, hull = FALSE, ellipse = TRUE)
+
+pa_table <- wide_prop
+pa_table[pa_table > 0] <- 1
+
+bd_jaccard <- betadisper(vegdist(pa_table, "jaccard"), wide_meta$net)
+permutest(bd_jaccard, strata = wide_meta$haul)
+
+plot(bd_jaccard, hull = FALSE, ellipse = TRUE)
+
+# ggplot version
+disp_site_scores <- as.data.frame(scores(bd_jaccard))
+disp_site_scores$net <- wide_meta$net
+
+ggplot(disp_site_scores, aes(x = sites.PCoA1, y = sites.PCoA2, color = net)) +
+  geom_point(size = 3) +
+  stat_ellipse(level = 0.68) +  # ~1 SD ellipse
+  labs(x = "PCoA1", y = "PCoA2", color = "metaprobe") +
+  theme_minimal()
+```
+
+permanova for bc is trustworthy since dispersion is not significant 
+not the case for presence/abs - jaccard
+
+summarize species occurrence by metaprobe location 
+```{r}
+species_occ <- pa_table %>%
+  mutate(var_ID = rownames(pa_table)) %>%
+  left_join(wide_meta %>% ungroup() %>% select(var_ID, net), by = "var_ID") %>%
+  group_by(net) %>%
+  summarise(across(-var_ID, sum), .groups = "drop") %>%
+  pivot_longer(-net, names_to = "taxon", values_to = "count") %>%
+  #pivot_wider(names_from = net, values_from = count, values_fill = 0)
+  mutate(taxon_order = factor(taxon, levels = rev(unique(taxon[order(count)]))))
+
+heatmap_plot <- ggplot(species_occ, aes(x = net, y = taxon_order, fill = count)) +
+  geom_tile(color = "white") +           # makes tiles
+  scale_fill_gradient(low = "white", high = "steelblue") +
+  scale_y_discrete(limits = rev(levels(species_occ$taxon_order))) +  # reverse y-axis
+  labs(x = "metaprobe", y = "taxa", fill = "# of observations") +
+  theme_bw() +
+  theme(axis.text.y = element_text(size = 8))
+
+heatmap_plot 
+
+#ggsave(here("figures", "metaprobe_heatmap.png"), plot = heatmap_plot, dpi = 300, width = 5, height =5)
+```
+
+simper analysis 
+```{r}
+sim <- simper(pa_table, wide_meta$net, permutations = 999)
+summary(sim)
+```
+
+
+run distance-based paired test 
+```{r}
+dist_mat <- vegdist(wide_prop, method = "bray")
+
+# Convert distance matrix to long form
+dist_long <- as.data.frame(as.table(as.matrix(dist_mat))) %>%
+  rename(sample1 = Var1,
+         sample2 = Var2,
+         distance = Freq) %>%
+  left_join(wide_meta, by = c("sample1" = "var_ID")) %>%
+  rename(haul1 = haul, net1 = net) %>%
+  left_join(wide_meta, by = c("sample2" = "var_ID")) %>%
+  rename(haul2 = haul, net2 = net)
+
+paired_dist <- dist_long %>%
+  filter(haul1 == haul2,
+         net1 != net2) %>%
+  mutate(pair_id = haul1) %>%
+  distinct(pair_id, distance)
+
+within <- paired_dist$distance
+between <- dist_long %>%
+  filter(haul1 != haul2,
+         net1 != net2) %>%
+  pull(distance)
+
+wilcox.test(within, between)
+```
+
+again, this suggests the codend vs headrope metaprobes have similar communities 
+
+now plot to visualize - just including net levels
+```{r}
+cap_net <- capscale(
+  wide_prop ~ net + Condition(haul),
+  data     = wide_meta,
+  distance = "bray"
+)
+summary(cap_net)
+anova(cap_net, by = "term", permutations = 999)
+
+scores_sites <- as.data.frame(scores(cap_net, display = "sites"))
+scores_sites$sample_id <- rownames(scores_sites)
+
+scores_sites <- scores_sites %>%
+  left_join(wide_meta, by = c("sample_id" = "var_ID"))
+
+segments_df <- scores_sites %>%
+  filter(net %in% c("Net_codend", "CTD_roof")) %>% 
+  select(haul, net, CAP1, MDS1) %>%
+  pivot_wider(
+    names_from  = net,
+    values_from = c(CAP1, MDS1)
+  ) %>%
+  drop_na()
+
+ggplot(scores_sites, aes(x = CAP1, y = MDS1, color = net)) +
+  geom_segment(
+    data = segments_df,
+    aes(
+      x = CAP1_Net_codend, y = MDS1_Net_codend,
+      xend = CAP1_CTD_roof, yend = MDS1_CTD_roof
+    ),
+    inherit.aes = FALSE,
+    color = "grey60",
+    linewidth = 0.6
+  ) +
+  geom_point(size = 3) +
+  stat_ellipse(type = "t", level = 0.68, linewidth = 0.8) +
+  labs(
+    x = "dbRDA1 (net effect | haul)",
+    y = "dbRDA2 (residuals)",
+    color = "Net"
+  ) +
+  theme_bw()
+```
+
+add depth to dbRDA to get two CAP axis
+```{r}
+cap_net_depth <- capscale(
+  wide_prop ~ net + depth_m + Condition(haul), 
+  data     = wide_meta,
+  distance = "bray"
+)
+summary(cap_net_depth)
+anova(cap_net_depth, by = "term", permutations = 999)
+
+## analogue would be: 
+adonis2(wide_prop ~ net + depth_m,
+        data   = wide_meta,
+        strata = wide_meta$haul)
+
+#plot 
+scores_sites <- as.data.frame(scores(cap_net_depth, display = "sites"))
+scores_sites$sample_id <- rownames(scores_sites)
+
+scores_sites <- scores_sites %>%
+  left_join(wide_meta, by = c("sample_id" = "var_ID"))
+
+#lines to connect hauls
+segments_df <- scores_sites %>%
+  filter(net %in% c("Net_codend", "CTD_roof")) %>%   # adjust if needed
+  select(haul, net, CAP1, CAP2) %>%
+  pivot_wider(
+    names_from  = net,
+    values_from = c(CAP1, CAP2)
+  ) %>%
+  drop_na()
+
+segments_df <- segments_df %>%
+  mutate(
+    mid_CAP1 = (CAP1_Net_codend + CAP1_CTD_roof) / 2,
+    mid_CAP2 = (CAP2_Net_codend + CAP2_CTD_roof) / 2
+  )
+
+#depth vector
+envfit_depth <- envfit(cap_net_depth ~ depth_m, data = wide_meta, permutations = 999)
+
+depth_vec <- as.data.frame(scores(envfit_depth, display = "vectors"))
+depth_vec$variable <- rownames(depth_vec)
+
+# scaling factor so arrows fit nicely in the ordination space
+depth_mult <- min(
+  diff(range(scores_sites$CAP1)),
+  diff(range(scores_sites$CAP2))
+) * 0.4   # adjust 0.3–0.6 for aesthetics
+
+
+depth_vec <- depth_vec %>%
+  mutate(
+    CAP1 = CAP1 * depth_mult,
+    CAP2 = CAP2 * depth_mult
+  )
+
+# #species loadings
+# sp_scores <- as.data.frame(scores(cap_net_depth, display = "species"))
+# sp_scores$taxon <- rownames(sp_scores)
+# 
+# sp_scores <- sp_scores %>%
+#   mutate(vec_len = sqrt(CAP1^2 + CAP2^2)) %>%
+#   arrange(desc(vec_len)) %>%
+#   slice_head(n = 5)   # adjust number
+# 
+# spp_mult <- min(
+#   diff(range(scores_sites$CAP1)),
+#   diff(range(scores_sites$CAP2))
+# ) * 0.4   # adjust 0.3–0.6 for aesthetics
+# 
+# 
+# sp_scores <- sp_scores %>%
+#   mutate(
+#     CAP1 = CAP1 * spp_mult,
+#     CAP2 = CAP2 * spp_mult
+#   )
+
+ggplot(scores_sites, aes(x = CAP1, y = CAP2, color = net)) +
+  geom_segment(
+    data = segments_df,
+    aes(
+      x = CAP1_Net_codend, y = CAP2_Net_codend,
+      xend = CAP1_CTD_roof, yend = CAP2_CTD_roof
+    ),
+    inherit.aes = FALSE,
+    color = "grey60",
+    linewidth = 0.6
+  ) +
+  # label segments with haul ID at midpoint
+  geom_text(
+    data = segments_df,
+    aes(
+      x = mid_CAP1,
+      y = mid_CAP2,
+      label = haul
+    ),
+    inherit.aes = FALSE,
+    size = 3,
+    color = "black"
+  ) +
+    # depth vector
+  geom_segment(
+    data = depth_vec,
+    aes(
+      x = 0, y = 0,
+      xend = CAP1, yend = CAP2
+    ),
+    inherit.aes = FALSE,
+    arrow = arrow(length = unit(0.25, "cm")),
+    color = "black",
+    linewidth = 0.9
+  ) +
+    geom_text(
+    data = depth_vec,
+    aes(
+      x = CAP1 * 1.2,
+      y = CAP2 * 1.2,
+      label = paste0("Depth")
+    ),
+    inherit.aes = FALSE,
+    size = 3.5
+  ) +
+  #   # species vectors
+  # geom_segment(
+  #   data = sp_scores,
+  #   aes(
+  #     x = 0, y = 0,
+  #     xend = CAP1, yend = CAP2
+  #   ),
+  #   inherit.aes = FALSE,
+  #   arrow = arrow(length = unit(0.2, "cm")),
+  #   color = "darkred",
+  #   linewidth = 0.7,
+  #   alpha = 0.8
+  # ) +
+  #  geom_text(
+  #   data = sp_scores,
+  #   aes(
+  #     x = CAP1 * 1.2,
+  #     y = CAP2 * 1.2,
+  #     label = taxon
+  #   ),
+  #   inherit.aes = FALSE,
+  #   color = "darkred",
+  #   size = 3
+  # ) +
+  geom_point(size = 3) +
+  scale_color_manual(values = c("CTD_roof" = "#007078", "Net_codend" = "#D65F00")) +
+  labs(
+    x = "CAP1",
+    y = "CAP2",
+    color = "metaprobe"
+  ) +
+  theme_bw()
+```

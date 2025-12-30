@@ -1,0 +1,63 @@
+---
+title: "metaprobes vs catch"
+output: html_document
+date: "2025-12-30"
+---
+
+libraries
+```{r}
+library(tidyverse)
+library(here)
+library(ggplot2)
+#devtools::install_github("thomasp85/scico")
+library(scico)
+library(vegan)
+library(reshape2)
+```
+
+read in file to join/merge nets and metaprobes
+```{r}
+key <- read.csv(here("tax_join.csv"))
+
+key_unique <- key %>%
+  group_by(eDNA_taxa) %>%
+  slice(1) %>%  # take the first row if duplicates exist
+  ungroup()
+
+key_unique_catch <- key %>%
+  group_by(catch_species_name) %>%
+  slice(1) %>%  # take the first row if duplicates exist
+  ungroup()
+```
+
+read in formated metaprobe data
+```{r}
+metaprobe_df <- read.csv(here("metaprobe_outputs", "taxon_wide.csv")) %>% select(!X) %>%
+  pivot_longer(cols = -c(1:5), names_to = "eDNA_taxa", values_to = "proportion") %>%
+  mutate(eDNA_taxa = gsub("\\.", " ", eDNA_taxa)) %>%
+  left_join(key_unique, by = "eDNA_taxa") %>%
+  group_by(haul, net, depth_m, curated, curated_common) %>%
+  summarise(proportion = sum(proportion)) %>%
+  mutate(net = ifelse(net == "Net_codend", "codend", net),
+         net = ifelse(net == "CTD_roof", "roof", net))
+```
+
+read in catch data
+```{r}
+catch <- read.csv(here("catch_outputs", "metaprobe_haul_catch.csv")) %>%
+  select(weight_kg, species_name, haul, depth_m) %>%
+  left_join(key_unique_catch, by = c("species_name" = "catch_species_name")) %>%
+  select(haul, depth_m, curated, curated_common, weight_kg) %>%
+  group_by(haul) %>%
+  mutate(total_kg = sum(weight_kg),
+         proportion = weight_kg/total_kg) %>%
+  mutate(net = "trawl") %>%
+  select(haul, net, depth_m, curated, curated_common, proportion)
+```
+
+combine
+```{r}
+DF <- metaprobe_df %>%
+  bind_rows(catch)
+```
+
