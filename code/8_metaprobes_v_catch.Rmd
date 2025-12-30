@@ -549,5 +549,62 @@ exampleB
 #ggsave(here("figures", "comp_by_gearB.png"), plot = exampleB, dpi = 300, width = 8, height =4)
 ```
 
+see if any taxa are consistently found more (or less) proportionally by eDNA than net.
+probably should do stats more similar to qm model, but for now this will be simple... (i hope) 
+```{r}
+DF_gear <- DF %>%
+  ungroup() %>%
+  select(!curated) %>%
+  pivot_wider(names_from = "net", values_from = "proportion", values_fill = 0) %>%
+  mutate(pres = roof + codend + trawl) %>%
+  filter(pres > 0)
 
+head(DF_gear)
+```
+
+plot change
+```{r}
+DF_compare <- DF_gear %>%
+  mutate(
+    codend_dir = sign(codend - roof),
+    trawl_dir  = sign(trawl  - roof)
+  )
+
+DF_summary <- DF_compare %>%
+  group_by(curated_common) %>%
+  summarize(
+    codend_pos = sum(codend_dir ==  1, na.rm = TRUE),
+    codend_neg = sum(codend_dir == -1, na.rm = TRUE),
+    trawl_pos  = sum(trawl_dir  ==  1, na.rm = TRUE),
+    trawl_neg  = sum(trawl_dir  == -1, na.rm = TRUE),
+    n_hauls    = n(),
+    .groups = "drop"
+  ) %>%
+  mutate(
+    codend_bias = (codend_pos - codend_neg) / n_hauls,
+    trawl_bias  = (trawl_pos  - trawl_neg)  / n_hauls
+  )
+
+DF_heat <- DF_summary %>%
+  filter(n_hauls > 4) %>%
+  select(curated_common, codend_bias, trawl_bias) %>%
+  pivot_longer(
+    cols = c(codend_bias, trawl_bias),
+    names_to = "gear",
+    values_to = "bias"
+  )
+
+ggplot(DF_heat, aes(x = gear, y = curated_common, fill = bias)) +
+  geom_tile() +
+  scale_fill_gradient2(
+    low = "blue", mid = "white", high = "red",
+    midpoint = 0, limits = c(-1, 1)
+  ) +
+  labs(
+    x = "Gear (relative to roof)",
+    y = "Taxon",
+    fill = "Directional bias"
+  ) +
+  theme_minimal()
+```
 
