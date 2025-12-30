@@ -3,7 +3,7 @@ NA,Ammodytes personatus,sandlance,Ammodytes personatus,no,yes
 Aspidophoroides monopterygius,Aspidophoroides monopterygius,Aleutian alligatorfish,Aspidophoroides monopterygius,yes,yes
 Atheresthes stomias,Atheresthes,Atheresthes,Atheresthes,yes,yes
 Atheresthes evermanni,Atheresthes,Atheresthes,Atheresthes,yes,yes
-NA,Bathyagonus,poacher,Bathyagonus,no,yes
+NA,Agonidae,poacher,Bathyagonus,no,yes
 Bathymaster signatus,Bathymaster,searcher,Bathymaster,yes,yes
 Careproctus phasma,Careproctus,snailfish,Careproctus,yes,yes
 Careproctus scottae,Careproctus,snailfish,Careproctus,yes,yes
@@ -37,10 +37,10 @@ Podothecus accipenserinus,Podothecus accipenserinus,sturgeon poacher,NA,yes,no
 Poroclinus rothrocki,Poroclinus rothrocki,whitebarred prickleback,NA,yes,no
 NA,Ptilichthys goodei,quillfish,Ptilichthys goodei,no,yes
 NA,Reinhardtius hippoglossoides,Greenland halibut,Reinhardtius hippoglossoides,no,yes
-Sarritor frenatus,Sarritor,poacher,Sarritor leptorhynchus,yes,yes
-Sebastes alutus,Sebastes,Sebastes,Sebastes,yes,yes
-Sebastes polyspinis,Sebastes,Sebastes,Sebastes,yes,yes
-NA,Sebastolobus,Sebastolobus,Sebastolobus,no,yes
+Sarritor frenatus,Agonidae,poacher,Sarritor leptorhynchus,yes,yes
+Sebastes alutus,Sebastes,rockfish,Sebastes,yes,yes
+Sebastes polyspinis,Sebastes,rockfish,Sebastes,yes,yes
+NA,Sebastolobus,thornyheads,Sebastolobus,no,yes
 Triglops scepticus,Triglops scepticus,spectacled sculpin,Triglops scepticus,yes,yes
 Zaprora silenus,Zaprora silenus,prowfish,Zaprora silenus,yes,yes
-NA,Sarritor,poacher,Agonidae,yes,yes
+NA,Agonidae,poacher,Agonidae,yes,yes

@@ -28,6 +28,11 @@ key_unique_catch <- key %>%
   group_by(catch_species_name) %>%
   slice(1) %>%  # take the first row if duplicates exist
   ungroup()
+
+key_curated <- key %>%
+  select(curated, curated_common) %>%
+  unique()
+key_curated
 ```
 
 read in formated metaprobe data
@@ -47,7 +52,8 @@ read in catch data
 catch <- read.csv(here("catch_outputs", "metaprobe_haul_catch.csv")) %>%
   select(weight_kg, species_name, haul, depth_m) %>%
   left_join(key_unique_catch, by = c("species_name" = "catch_species_name")) %>%
-  select(haul, depth_m, curated, curated_common, weight_kg) %>%
+  group_by(haul, depth_m, curated, curated_common) %>%
+  summarize(weight_kg = sum(weight_kg)) %>%
   group_by(haul) %>%
   mutate(total_kg = sum(weight_kg),
          proportion = weight_kg/total_kg) %>%
@@ -60,4 +66,488 @@ combine
 DF <- metaprobe_df %>%
   bind_rows(catch)
 ```
+
+pivot table wide into a sample by taxon data frame - save metadata in separate df 
+```{r}
+DF_wide <- DF %>%
+  ungroup() %>%
+  select(!curated) %>%
+  pivot_wider(names_from = "curated_common", values_from = "proportion", values_fill = 0)
+
+DF_meta <- DF_wide[,c(1:3)]
+DF_prop <- DF_wide[,-c(1:3)]
+```
+
+okay, first explore the data with an NMDS 
+```{r}
+# Bray–Curtis (abundance / proportions)
+dist_bray <- vegdist(DF_prop, method = "bray")
+
+# Jaccard (presence–absence)
+pa_mat <- DF_prop
+pa_mat[pa_mat > 0] <- 1
+dist_jaccard <- vegdist(pa_mat, method = "jaccard")
+
+set.seed(123)
+
+#run NMDS
+nmds_bray <- metaMDS(
+  dist_bray,
+  k = 2,
+  trymax = 200,
+  autotransform = FALSE
+)
+
+nmds_jaccard <- metaMDS(
+  dist_jaccard,
+  k = 2,
+  trymax = 200,
+  autotransform = FALSE
+)
+
+#check stress
+nmds_bray$stress
+nmds_jaccard$stress
+
+#extract site scores
+scores_bray <- scores(nmds_bray, display = "sites") %>%
+  as.data.frame() %>%
+  bind_cols(DF_meta)
+
+scores_jaccard <- scores(nmds_jaccard, display = "sites") %>%
+  as.data.frame() %>%
+  bind_cols(DF_meta)
+```
+
+plot bray-curtis
+```{r}
+#plot 
+ggplot(scores_bray, aes(NMDS1, NMDS2, color = net)) +
+  geom_point(size = 3) +
+  stat_ellipse(aes(group = net), linewidth = 1) +
+  theme_bw() +
+  labs(
+    title = "NMDS – Bray–Curtis",
+    color = "Metaprobe"
+  )
+
+scico_pal <- scico(17, palette = 'imola')
+
+nmds_bray <- ggplot(scores_bray, aes(NMDS1, NMDS2)) +
+  geom_point(aes(color = as.factor(haul), shape = as.factor(net)), size = 3) +
+  stat_ellipse(aes(group = net, linetype = net), linewidth = 1) +
+  scale_color_manual(
+    values = scico_pal,
+    name = "Haul"
+  ) +
+  theme_bw() +
+  labs(
+    title = "NMDS – Bray–Curtis",
+    color = "Haul",
+    shape = "Gear",
+    linetype = "Gear"
+  )
+nmds_bray
+#ggsave(here("figures", "nmds_bray.png"), plot = nmds_bray, dpi = 300, width = 8, height = 6)
+
+nmds_bray_facet <-ggplot(scores_bray, aes(NMDS1, NMDS2)) +
+  geom_point(aes(color = as.factor(haul), shape = net), size = 3) +
+  scale_color_manual(
+    values = scico_pal,
+    name = "Haul"
+  ) +
+  geom_line(
+    aes(group = haul),
+    color = "grey60",
+    linewidth = 0.7
+  ) +
+  facet_wrap(~ haul) +
+  theme_bw() +
+  guides(color = "none") +
+  labs(
+    title = "NMDS (Bray-Curtis)",
+    shape = "gear"
+  )
+nmds_bray_facet
+#ggsave(here("figures", "nmds_bray_facet.png"), plot = nmds_bray_facet, dpi = 300, width = 8, height = 6)
+```
+
+
+plot jaccard
+```{r}
+ggplot(scores_jaccard, aes(NMDS1, NMDS2, color = net)) +
+  geom_point(size = 3) +
+  stat_ellipse(aes(group = net), linewidth = 1) +
+  theme_bw() +
+  labs(
+    title = "NMDS – Jaccard (presence–absence)"
+  )
+
+ggplot(scores_jaccard, aes(NMDS1, NMDS2)) +
+  geom_point(aes(color = net), size = 3) +
+  geom_line(
+    aes(group = haul),
+    color = "grey60",
+    linewidth = 0.7
+  ) +
+  facet_wrap(~ haul) +
+  theme_bw() +
+  labs(
+    title = "Paired NMDS (Jaccard)",
+    color = "Metaprobe"
+  )
+
+scico_pal <- scico(17, palette = 'imola')
+
+nmds_jaccard <- ggplot(scores_jaccard, aes(NMDS1, NMDS2)) +
+  geom_point(aes(color = as.factor(haul), shape = as.factor(net)), size = 3) +
+  stat_ellipse(aes(group = net, linetype = net), linewidth = 1) +
+  scale_color_manual(
+    values = scico_pal,
+    name = "Haul"
+  ) +
+  theme_bw() +
+  labs(
+    title = "NMDS – Jaccard",
+    color = "Haul",
+    shape = "Gear",
+    linetype = "Gear"
+  )
+#ggsave(here("figures", "nmds_jaccard.png"), plot = nmds_jaccard, dpi = 300, width = 8, height = 6)
+```
+
+
+test whether codend vs headrope vs trawl differ while accounting for site-level pairings - PERMANOVA
+use bray-curtis and jaccard distance matrices
+```{r}
+adonis2(DF_prop ~ net,
+        data = DF_meta,
+        strata = DF_meta$haul,
+        method = "bray")
+
+adonis2(DF_prop ~ net,
+        data = DF_meta,
+        strata = DF_meta$haul,
+        method = "jaccard")
+```
+
+but check dispersion 
+```{r}
+bd_bray <- betadisper(vegdist(DF_prop, "bray"), DF_meta$net)
+permutest(bd_bray, strata = DF_meta$haul)
+
+plot(bd_bray, hull = FALSE, ellipse = TRUE)
+
+pa_table <- DF_prop
+pa_table[pa_table > 0] <- 1
+
+bd_jaccard <- betadisper(vegdist(pa_table, "jaccard"), DF_meta$net)
+permutest(bd_jaccard, strata = DF_meta$haul)
+
+plot(bd_jaccard, hull = FALSE, ellipse = TRUE)
+
+# ggplot version
+#disp_site_scores <- as.data.frame(scores(bd_jaccard))
+disp_site_scores <- as.data.frame(scores(bd_bray))
+disp_site_scores$net <- DF_meta$net
+
+ggplot(disp_site_scores, aes(x = sites.PCoA1, y = sites.PCoA2, color = net)) +
+  geom_point(size = 3) +
+  stat_ellipse(level = 0.68) +  # ~1 SD ellipse
+  labs(x = "PCoA1", y = "PCoA2", color = "metaprobe") +
+  theme_minimal()
+```
+
+
+now use a dbRDA
+```{r}
+dbrda_net_only <- capscale(
+  DF_prop ~ net + Condition(haul),
+  data     = DF_meta,
+  distance = "bray"
+)
+
+dbrda_net <- capscale(
+  DF_prop ~ net + depth_m + Condition(haul),
+  data     = DF_meta,
+  distance = "bray"
+)
+
+dbrda_net_only
+dbrda_net
+anova(dbrda_net_only, permutations = 999)
+anova(dbrda_net, permutations = 999)
+anova(dbrda_net, by = "term", permutations = 999)
+```
+
+plot dbRDA - with depth 
+```{r}
+# site scores
+scores_sites <- scores(dbrda_net, display = "sites") %>% 
+  as.data.frame() %>% 
+  bind_cols(DF_meta)
+
+# eigenvalues
+cap_eig <- dbrda_net$CCA$eig  # vector of CAP1, CAP2, CAP3
+percent_var_CAP <- round(100 * cap_eig / sum(cap_eig), 1)
+percent_var_total <- round(100 * cap_eig / sum(dbrda_net$tot.chi), 1)
+
+# vector for depth
+depth_vec <- envfit(dbrda_net, DF_meta["depth_m"], permutations = 999)
+depth_scores <- scores(depth_vec, display = "vectors") %>%
+  as.data.frame() %>%
+  rownames_to_column("variable")
+
+library(ggplot2)
+library(grid)  # for arrow()
+
+cap_bray <- ggplot(scores_sites, aes(x = CAP1, y = CAP2)) +
+  
+  # ellipses for gear
+  stat_ellipse(aes(group = net, fill = net),
+               geom = "polygon",
+               alpha = 0.25,
+               color = NA) + 
+  
+  scale_fill_manual(values = c("roof" = "#007078", "codend" = "#D65F00", "trawl" = "#625BC4")) +
+
+  # points by net/gear
+  geom_point(aes(shape = net, color = as.factor(haul)), size = 3) +
+
+  # depth vector
+  geom_segment(
+    data = depth_scores,
+    aes(
+      x = 0, y = 0,
+      xend = CAP1, yend = CAP2
+    ),
+    inherit.aes = FALSE,
+    arrow = arrow(length = unit(0.25, "cm")),
+    color = "black",
+    linewidth = 0.9
+  ) +
+  geom_text(
+    data = depth_scores,
+    aes(
+      x = CAP1 * 1.4,
+      y = CAP2 * 1.4,
+      label = variable
+    ),
+    inherit.aes = FALSE,
+    size = 3.5
+  ) +
+
+  # optional: customize colors
+  scale_color_manual(values = scico_pal) +
+
+  # axis labels with % variance
+  labs(
+    x = paste0("CAP1 (", percent_var_total[1], "%)"),
+    y = paste0("CAP2 (", percent_var_total[2], "%)"),
+    shape = "Gear",
+    color = "Haul",
+    fill = "Gear"
+  ) +
+  guides(color = "none") +
+  theme_bw()
+
+cap_bray 
+#ggsave(here("figures", "cap_bray.png"), plot = cap_bray, dpi = 300, width = 8, height = 6)
+```
+
+
+plot dbRDA - without depth 
+```{r}
+# site scores
+scores_sites <- scores(dbrda_net_only, display = "sites") %>% 
+  as.data.frame() %>% 
+  bind_cols(DF_meta)
+
+# eigenvalues
+cap_eig <- dbrda_net_only$CCA$eig  # vector of CAP1, CAP2
+percent_var_CAP <- round(100 * cap_eig / sum(cap_eig), 1)
+percent_var_total <- round(100 * cap_eig / sum(dbrda_net$tot.chi), 1)
+
+library(ggplot2)
+library(grid)  # for arrow()
+
+ggplot(scores_sites, aes(x = CAP1, y = CAP2)) +
+  
+  # ellipses for gear
+  stat_ellipse(aes(group = net, fill = net),
+               geom = "polygon",
+               alpha = 0.25,
+               color = NA) + 
+  
+  scale_fill_manual(values = c("roof" = "#007078", "codend" = "#D65F00", "trawl" = "#625BC4")) +
+  
+  # points by net/gear
+  geom_point(aes(shape = net, color = as.factor(haul)), size = 3) +
+  
+  # optional: customize colors
+  scale_color_manual(values = scico_pal) +
+
+  # axis labels with % variance
+  labs(
+    x = paste0("CAP1 (", percent_var_total[1], "%)"),
+    y = paste0("CAP2 (", percent_var_total[2], "%)"),
+    shape = "Gear",
+    color = "Haul",
+    fill = "Gear"
+  ) +
+  guides(color = "none") +
+  theme_bw()
+```
+
+
+dbRDA - jaccard
+```{r}
+dbrda_net_only <- capscale(
+  pa_table ~ net + Condition(haul),
+  data     = DF_meta,
+  distance = "jaccard"
+)
+
+dbrda_net <- capscale(
+  pa_table ~ net + depth_m + Condition(haul),
+  data     = DF_meta,
+  distance = "bray"
+)
+
+dbrda_net_only
+dbrda_net
+anova(dbrda_net_only, permutations = 999)
+anova(dbrda_net, permutations = 999)
+anova(dbrda_net, by = "term", permutations = 999)
+```
+
+plot dbRDA - with depth 
+```{r}
+# site scores
+scores_sites <- scores(dbrda_net, display = "sites") %>% 
+  as.data.frame() %>% 
+  bind_cols(DF_meta)
+
+# eigenvalues
+cap_eig <- dbrda_net$CCA$eig  # vector of CAP1, CAP2, CAP3
+percent_var_CAP <- round(100 * cap_eig / sum(cap_eig), 1)
+percent_var_total <- round(100 * cap_eig / sum(dbrda_net$tot.chi), 1)
+
+# vector for depth
+depth_vec <- envfit(dbrda_net, DF_meta["depth_m"], permutations = 999)
+depth_scores <- scores(depth_vec, display = "vectors") %>%
+  as.data.frame() %>%
+  rownames_to_column("variable")
+
+library(ggplot2)
+library(grid)  # for arrow()
+
+cap_jaccard <- ggplot(scores_sites, aes(x = CAP1, y = CAP2)) +
+  
+  # ellipses for gear
+  stat_ellipse(aes(group = net, fill = net),
+               geom = "polygon",
+               alpha = 0.25,
+               color = NA) + 
+  
+  scale_fill_manual(values = c("roof" = "#007078", "codend" = "#D65F00", "trawl" = "#625BC4")) +
+
+  # points by net/gear
+  geom_point(aes(shape = net, color = as.factor(haul)), size = 3) +
+
+  # depth vector
+  geom_segment(
+    data = depth_scores,
+    aes(
+      x = 0, y = 0,
+      xend = CAP1, yend = CAP2
+    ),
+    inherit.aes = FALSE,
+    arrow = arrow(length = unit(0.25, "cm")),
+    color = "black",
+    linewidth = 0.9
+  ) +
+  geom_text(
+    data = depth_scores,
+    aes(
+      x = CAP1 * 1.4,
+      y = CAP2 * 1.4,
+      label = variable
+    ),
+    inherit.aes = FALSE,
+    size = 3.5
+  ) +
+
+  # optional: customize colors
+  scale_color_manual(values = scico_pal) +
+
+  # axis labels with % variance
+  labs(
+    x = paste0("CAP1 (", percent_var_total[1], "%)"),
+    y = paste0("CAP2 (", percent_var_total[2], "%)"),
+    shape = "Gear",
+    color = "Haul",
+    fill = "Gear"
+  ) +
+  guides(color = "none") +
+  theme_bw()
+
+cap_jaccard 
+#ggsave(here("figures", "cap_jaccard.png"), plot = cap_jaccard, dpi = 300, width = 8, height = 6)
+```
+
+heatmap of occurance by gear 
+```{r}
+DF_meta$var_ID = as.character(c(1:51))
+
+species_occ <- pa_table %>%
+  mutate(var_ID = rownames(pa_table)) %>%
+  left_join(DF_meta %>% ungroup() %>% select(var_ID, net), by = "var_ID") %>%
+  group_by(net) %>%
+  summarise(across(-var_ID, sum), .groups = "drop") %>%
+  pivot_longer(-net, names_to = "taxon", values_to = "count") %>%
+  #pivot_wider(names_from = net, values_from = count, values_fill = 0)
+  mutate(taxon_order = factor(taxon, levels = rev(unique(taxon[order(count)]))))
+
+heatmap_gear <- ggplot(species_occ, aes(x = net, y = taxon_order, fill = count)) +
+  geom_tile(color = "white") +           # makes tiles
+  scale_fill_gradient(low = "white", high = "steelblue") +
+  scale_y_discrete(limits = rev(levels(species_occ$taxon_order))) +  # reverse y-axis
+  labs(x = "gear", y = "taxa", fill = "# of observations") +
+  theme_bw() +
+  theme(axis.text.y = element_text(size = 8))
+
+heatmap_gear 
+#ggsave(here("figures", "gear_heatmap.png"), plot = heatmap_gear, dpi = 300, width = 6, height =5)
+```
+
+plot some hauls by gear 
+```{r}
+scico_pal <- scico(31, palette = 'roma')
+
+exampleB <- DF %>%
+  #filter(haul %in% c(192, 196, 201)) %>%
+  filter(haul %in% c(189, 195, 198)) %>%
+  filter(proportion > 0) %>%
+  ggplot(aes(x=net, y=proportion, fill=curated_common)) +
+  geom_bar(stat = "identity") + 
+  scale_fill_manual(values = scico_pal) + 
+  theme_bw() +
+  facet_wrap(~haul, scales = "free") +
+  labs(
+    y = "proportion",
+    x = "") + 
+  theme(
+    axis.text.x = element_text(angle = 34, hjust = 0.95),
+    legend.text = element_text(size = 8),
+    legend.key.size = unit(0.3, "cm"),
+    legend.position = "right",
+    legend.title = element_blank()
+  )
+
+exampleB 
+#ggsave(here("figures", "comp_by_gearB.png"), plot = exampleB, dpi = 300, width = 8, height =4)
+```
+
+
 
