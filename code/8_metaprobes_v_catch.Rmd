@@ -44,7 +44,7 @@ metaprobe_df <- read.csv(here("metaprobe_outputs", "taxon_wide.csv")) %>% select
   group_by(haul, net, depth_m, curated, curated_common) %>%
   summarise(proportion = sum(proportion)) %>%
   mutate(net = ifelse(net == "Net_codend", "codend", net),
-         net = ifelse(net == "CTD_roof", "roof", net))
+         net = ifelse(net == "CTD_roof", "headrope", net))
 ```
 
 read in catch data
@@ -122,98 +122,161 @@ scores_jaccard <- scores(nmds_jaccard, display = "sites") %>%
 plot bray-curtis
 ```{r}
 #plot 
-ggplot(scores_bray, aes(NMDS1, NMDS2, color = net)) +
-  geom_point(size = 3) +
-  stat_ellipse(aes(group = net), linewidth = 1) +
-  theme_bw() +
-  labs(
-    title = "NMDS – Bray–Curtis",
-    color = "Metaprobe"
-  )
+# ggplot(scores_bray, aes(NMDS1, NMDS2, color = net)) +
+#   geom_point(size = 3) +
+#   stat_ellipse(aes(group = net), linewidth = 1) +
+#   theme_bw() +
+#   labs(
+#     title = "NMDS – Bray–Curtis",
+#     color = "Metaprobe"
+#   )
 
-scico_pal <- scico(17, palette = 'imola')
+scico_pal <- scico(17, palette = 'hawaii')
 
 nmds_bray <- ggplot(scores_bray, aes(NMDS1, NMDS2)) +
-  geom_point(aes(color = as.factor(haul), shape = as.factor(net)), size = 3) +
-  stat_ellipse(aes(group = net, linetype = net), linewidth = 1) +
-  scale_color_manual(
-    values = scico_pal,
-    name = "Haul"
+  
+  # ellipses for gear
+  stat_ellipse(
+    aes(group = net, fill = net),
+    geom = "polygon",
+    alpha = 0.25,
+    color = NA,
+    level = 0.68
   ) +
+  
+  # points
+  geom_point(
+    aes(color = factor(haul), shape = net),
+    size = 3
+  ) +
+  
+  # gear scales (shared legend)
+  scale_fill_manual(
+    name = "Gear",
+    values = c(
+      "headrope" = "#007078",
+      "codend"   = "#D65F00",
+      "trawl"    = "#625BC4"
+    )
+  ) +
+  scale_shape_manual(
+    name = "Gear",
+    values = c(
+      "headrope" = 16,
+      "codend"   = 17,
+      "trawl"    = 15
+    )
+  ) +
+  
+  # haul scale
+  scale_color_manual(
+    name = "Haul",
+    values = scico_pal
+  ) +
+  
   theme_bw() +
   labs(
-    title = "NMDS – Bray–Curtis",
-    color = "Haul",
-    shape = "Gear",
-    linetype = "Gear"
+    title = "NMDS – Bray–Curtis"
   )
 nmds_bray
-#ggsave(here("figures", "nmds_bray.png"), plot = nmds_bray, dpi = 300, width = 8, height = 6)
+ggsave(here("figures", "nmds_bray.png"), plot = nmds_bray, dpi = 300, width = 8, height = 6)
 
-nmds_bray_facet <-ggplot(scores_bray, aes(NMDS1, NMDS2)) +
-  geom_point(aes(color = as.factor(haul), shape = net), size = 3) +
-  scale_color_manual(
-    values = scico_pal,
-    name = "Haul"
-  ) +
-  geom_line(
-    aes(group = haul),
-    color = "grey60",
-    linewidth = 0.7
-  ) +
-  facet_wrap(~ haul) +
-  theme_bw() +
-  guides(color = "none") +
-  labs(
-    title = "NMDS (Bray-Curtis)",
-    shape = "gear"
-  )
-nmds_bray_facet
+# nmds_bray_facet <-ggplot(scores_bray, aes(NMDS1, NMDS2)) +
+#   geom_point(aes(color = as.factor(haul), shape = net), size = 3) +
+#   scale_color_manual(
+#     values = scico_pal,
+#     name = "Haul"
+#   ) +
+#   geom_line(
+#     aes(group = haul),
+#     color = "grey60",
+#     linewidth = 0.7
+#   ) +
+#   facet_wrap(~ haul) +
+#   theme_bw() +
+#   guides(color = "none") +
+#   labs(
+#     title = "NMDS (Bray-Curtis)",
+#     shape = "gear"
+#   )
+# nmds_bray_facet
 #ggsave(here("figures", "nmds_bray_facet.png"), plot = nmds_bray_facet, dpi = 300, width = 8, height = 6)
 ```
 
 
 plot jaccard
 ```{r}
-ggplot(scores_jaccard, aes(NMDS1, NMDS2, color = net)) +
-  geom_point(size = 3) +
-  stat_ellipse(aes(group = net), linewidth = 1) +
-  theme_bw() +
-  labs(
-    title = "NMDS – Jaccard (presence–absence)"
-  )
+# ggplot(scores_jaccard, aes(NMDS1, NMDS2, color = net)) +
+#   geom_point(size = 3) +
+#   stat_ellipse(aes(group = net), linewidth = 1) +
+#   theme_bw() +
+#   labs(
+#     title = "NMDS – Jaccard (presence–absence)"
+#   )
 
-ggplot(scores_jaccard, aes(NMDS1, NMDS2)) +
-  geom_point(aes(color = net), size = 3) +
-  geom_line(
-    aes(group = haul),
-    color = "grey60",
-    linewidth = 0.7
-  ) +
-  facet_wrap(~ haul) +
-  theme_bw() +
-  labs(
-    title = "Paired NMDS (Jaccard)",
-    color = "Metaprobe"
-  )
+# ggplot(scores_jaccard, aes(NMDS1, NMDS2)) +
+#   geom_point(aes(color = net), size = 3) +
+#   geom_line(
+#     aes(group = haul),
+#     color = "grey60",
+#     linewidth = 0.7
+#   ) +
+#   facet_wrap(~ haul) +
+#   theme_bw() +
+#   labs(
+#     title = "Paired NMDS (Jaccard)",
+#     color = "Metaprobe"
+#   )
 
-scico_pal <- scico(17, palette = 'imola')
+scico_pal <- scico(17, palette = 'hawaii')
 
 nmds_jaccard <- ggplot(scores_jaccard, aes(NMDS1, NMDS2)) +
-  geom_point(aes(color = as.factor(haul), shape = as.factor(net)), size = 3) +
-  stat_ellipse(aes(group = net, linetype = net), linewidth = 1) +
-  scale_color_manual(
-    values = scico_pal,
-    name = "Haul"
+  
+  # ellipses for gear
+  stat_ellipse(
+    aes(group = net, fill = net),
+    geom = "polygon",
+    alpha = 0.25,
+    color = NA,
+    level = 0.68
   ) +
+  
+  # points
+  geom_point(
+    aes(color = factor(haul), shape = net),
+    size = 3
+  ) +
+  
+  # gear scales (shared legend)
+  scale_fill_manual(
+    name = "Gear",
+    values = c(
+      "headrope" = "#007078",
+      "codend"   = "#D65F00",
+      "trawl"    = "#625BC4"
+    )
+  ) +
+  scale_shape_manual(
+    name = "Gear",
+    values = c(
+      "headrope" = 16,
+      "codend"   = 17,
+      "trawl"    = 15
+    )
+  ) +
+  
+  # haul scale
+  scale_color_manual(
+    name = "Haul",
+    values = scico_pal
+  ) +
+  
   theme_bw() +
   labs(
-    title = "NMDS – Jaccard",
-    color = "Haul",
-    shape = "Gear",
-    linetype = "Gear"
+    title = "NMDS – Jaccard"
   )
-#ggsave(here("figures", "nmds_jaccard.png"), plot = nmds_jaccard, dpi = 300, width = 8, height = 6)
+nmds_jaccard
+ggsave(here("figures", "nmds_jaccard.png"), plot = nmds_jaccard, dpi = 300, width = 8, height = 6)
 ```
 
 
@@ -518,16 +581,16 @@ heatmap_gear <- ggplot(species_occ, aes(x = net, y = taxon_order, fill = count))
   theme(axis.text.y = element_text(size = 8))
 
 heatmap_gear 
-#ggsave(here("figures", "gear_heatmap.png"), plot = heatmap_gear, dpi = 300, width = 6, height =5)
+ggsave(here("figures", "gear_heatmap.png"), plot = heatmap_gear, dpi = 300, width = 6, height =5)
 ```
 
 plot some hauls by gear 
 ```{r}
-scico_pal <- scico(31, palette = 'roma')
+scico_pal <- scico(23, palette = 'roma')
 
-exampleB <- DF %>%
-  #filter(haul %in% c(192, 196, 201)) %>%
-  filter(haul %in% c(189, 195, 198)) %>%
+exampleA <- DF %>%
+  filter(haul %in% c(192, 196, 201)) %>%
+  #filter(haul %in% c(189, 195, 198)) %>%
   filter(proportion > 0) %>%
   ggplot(aes(x=net, y=proportion, fill=curated_common)) +
   geom_bar(stat = "identity") + 
@@ -545,8 +608,8 @@ exampleB <- DF %>%
     legend.title = element_blank()
   )
 
-exampleB 
-#ggsave(here("figures", "comp_by_gearB.png"), plot = exampleB, dpi = 300, width = 8, height =4)
+exampleA 
+ggsave(here("figures", "comp_by_gearA.png"), plot = exampleA, dpi = 300, width = 8, height =4)
 ```
 
 see if any taxa are consistently found more (or less) proportionally by eDNA than net.
@@ -556,7 +619,7 @@ DF_gear <- DF %>%
   ungroup() %>%
   select(!curated) %>%
   pivot_wider(names_from = "net", values_from = "proportion", values_fill = 0) %>%
-  mutate(pres = roof + codend + trawl) %>%
+  mutate(pres = headrope + codend + trawl) %>%
   filter(pres > 0)
 
 head(DF_gear)
@@ -566,8 +629,8 @@ plot change
 ```{r}
 DF_compare <- DF_gear %>%
   mutate(
-    codend_dir = sign(codend - roof),
-    trawl_dir  = sign(trawl  - roof)
+    codend_dir = sign(codend - trawl),
+    headrope_dir  = sign(headrope  - trawl)
   )
 
 DF_summary <- DF_compare %>%
@@ -575,36 +638,40 @@ DF_summary <- DF_compare %>%
   summarize(
     codend_pos = sum(codend_dir ==  1, na.rm = TRUE),
     codend_neg = sum(codend_dir == -1, na.rm = TRUE),
-    trawl_pos  = sum(trawl_dir  ==  1, na.rm = TRUE),
-    trawl_neg  = sum(trawl_dir  == -1, na.rm = TRUE),
+    headrope_pos  = sum(headrope_dir  ==  1, na.rm = TRUE),
+    headrope_neg  = sum(headrope_dir  == -1, na.rm = TRUE),
     n_hauls    = n(),
     .groups = "drop"
   ) %>%
   mutate(
     codend_bias = (codend_pos - codend_neg) / n_hauls,
-    trawl_bias  = (trawl_pos  - trawl_neg)  / n_hauls
+    headrope_bias  = (headrope_pos  - headrope_neg)  / n_hauls
   )
 
 DF_heat <- DF_summary %>%
   filter(n_hauls > 4) %>%
-  select(curated_common, codend_bias, trawl_bias) %>%
+  select(curated_common, codend_bias, headrope_bias) %>%
   pivot_longer(
-    cols = c(codend_bias, trawl_bias),
+    cols = c(codend_bias, headrope_bias),
     names_to = "gear",
     values_to = "bias"
   )
 
-ggplot(DF_heat, aes(x = gear, y = curated_common, fill = bias)) +
+biasplot <- ggplot(DF_heat, aes(x = gear, y = curated_common, fill = bias)) +
   geom_tile() +
   scale_fill_gradient2(
-    low = "blue", mid = "white", high = "red",
+        low  = "#3B4CC0",   # cool blue
+        mid  = "white",
+        high = "#B40426",
     midpoint = 0, limits = c(-1, 1)
   ) +
   labs(
-    x = "Gear (relative to roof)",
+    x = "Gear (relative to trawl)",
     y = "Taxon",
     fill = "Directional bias"
   ) +
   theme_minimal()
+
+ggsave(here("figures", "gear_bias.png"), plot = biasplot, dpi = 300, width = 6, height =5)
 ```
 

@@ -121,7 +121,7 @@ lump the gadus reads
 taxon_table_2 <- taxon_table_filtered %>%
   mutate(taxon = ifelse(taxon == "Gadus chalcogrammus", "Gadus", taxon),
          taxon = ifelse(taxon == "Gadus macrocephalus", "Gadus", taxon),
-         taxonomic_level = ifelse(taxon == "Gadus", "genus", taxon),
+         taxonomic_level = ifelse(taxon == "Gadus", "genus", taxonomic_level),
          species = ifelse(taxon == "Gadus", NA, species)) %>%
   group_by(extraction_ID, sample_type, sample_id, taxon, taxonomic_level, species, genus, family, order, alternative_ID, haul, net, depth_m) %>%
   summarize(reads = sum(reads))
@@ -314,36 +314,35 @@ add a filter to remove the very very rare species - i.e. spp that never make up 
 #  filter(prop_reads > 0.005)
 ```
 
-filter results and take mean of technical replicates from the same metaprobe
+## summarize the technical replicates by metaprobe
+
+fill in 0's for taxa and then calculate means 
 ```{r}
-mean_taxon_table <- taxon_table_2 %>%
+taxon_table_mean <- taxon_table_2 %>%
+  ungroup() %>%
+  select(alternative_ID, sample_type, sample_id, taxon, haul, net, depth_m, reads) %>%
+  pivot_wider(names_from = taxon, values_from = reads, values_fill = 0) %>%
+  pivot_longer(cols = c(7:43), names_to = "taxon", values_to = "reads") %>%
   group_by(sample_id) %>%
   mutate(total_reads = sum(reads),
          prop_reads = reads/total_reads) %>%
   ungroup() %>%
   group_by(alternative_ID, sample_type, taxon, haul, net, depth_m) %>%
-  summarize(simple_mean = mean(prop_reads)) %>%
-  ungroup() %>%
-  group_by(alternative_ID) %>%
-  mutate(simple_total = sum(simple_mean),
-         normalized_mean = simple_mean/simple_total)
+  summarize(mean_prop = mean(prop_reads))
 
-#check
-#mean_taxon_table %>%
-#  group_by(alternative_ID) %>%
-#  summarize(sum_mean_prop = sum(normalized_mean))
+taxon_table_mean %>% group_by(alternative_ID) %>% summarise(total = sum(mean_prop))
 ```
 
 
 plot some 
 ```{r}
-scico_pal <- scico(27, palette = 'roma')
+scico_pal <- scico(37, palette = 'roma')
 
-example_hauls <- mean_taxon_table %>%
+example_hauls <- taxon_table_mean %>%
   filter(haul %in% c(196, 198, 201, 195)) %>%
   filter(!is.na(net)) %>%
   #mutate(temp_id = paste0(haul, "_", net)) %>%  # combine haul and net
-  ggplot(aes(x=net, y=normalized_mean, fill=taxon)) +
+  ggplot(aes(x=net, y=mean_prop, fill=taxon)) +
   geom_bar(stat = "identity") + 
   scale_fill_manual(values = scico_pal) + 
   theme_bw() +
@@ -361,17 +360,15 @@ example_hauls <- mean_taxon_table %>%
   )
 example_hauls 
 
-ggsave(here("figures", "metaprobe_hauls.png"), plot = example_hauls, dpi = 300, width = 9, height = 5)
+#ggsave(here("figures", "metaprobe_hauls.png"), plot = example_hauls, dpi = 300, width = 9, height = 5)
 ```
 
 
 pivot table wide into a sample by taxon data frame - save metadata in separate df 
 ```{r}
-wide_df <- mean_taxon_table %>% 
-  select(!simple_total) %>%
-  select(!simple_mean) %>%
+wide_df <- taxon_table_mean %>% 
   filter(sample_type == "sample") %>%
-  pivot_wider(names_from = "taxon", values_from = "normalized_mean", values_fill = 0)
+  pivot_wider(names_from = "taxon", values_from = "mean_prop", values_fill = 0)
   
 wide_meta <- wide_df[,c(1:5)]
 wide_prop <- wide_df[,-c(1:5)]

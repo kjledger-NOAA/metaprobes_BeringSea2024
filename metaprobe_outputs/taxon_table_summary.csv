@@ -1,44 +1,44 @@
-"taxon","species","genus","family","order","total_reads","n_tech","n_extract","n_probes"
-"Gadus chalcogrammus","Gadus chalcogrammus","Gadus","Gadidae","Gadiformes",3809410,135,68,34
-"Lycodes brevipes","Lycodes brevipes","Lycodes","Zoarcidae","Perciformes",605629,127,65,33
-"Atheresthes",NA,"Atheresthes","Pleuronectidae","Pleuronectiformes",405896,133,67,34
-"Pleuronectidae",NA,NA,"Pleuronectidae","Pleuronectiformes",193634,112,61,31
-"Gadus",NA,"Gadus","Gadidae","Gadiformes",105000,12,8,6
-"Myoxocephalus",NA,"Myoxocephalus","Cottidae","Perciformes",92146,50,31,19
-"Sebastes",NA,"Sebastes","Sebastidae","Perciformes",84500,44,27,19
-"Lycodes palearis","Lycodes palearis","Lycodes","Zoarcidae","Perciformes",54742,97,55,29
-"Clupea pallasii","Clupea pallasii","Clupea","Clupeidae","Clupeiformes",49713,36,22,14
-"Glyptocephalus zachirus","Glyptocephalus zachirus","Glyptocephalus","Pleuronectidae","Pleuronectiformes",35723,41,26,15
-"Bathymaster",NA,"Bathymaster","Bathymasteridae","Perciformes",25764,36,21,13
-"Icelus spatula","Icelus spatula","Icelus","Cottidae","Perciformes",25289,39,24,14
-"Hippoglossus stenolepis","Hippoglossus stenolepis","Hippoglossus","Pleuronectidae","Pleuronectiformes",23455,36,23,14
-"Hemilepidotus",NA,"Hemilepidotus","Cottidae","Perciformes",10269,13,10,6
-"Gadus macrocephalus","Gadus macrocephalus","Gadus","Gadidae","Gadiformes",7994,1,1,1
-"Atheresthes","Atheresthes evermanni","Atheresthes","Pleuronectidae","Pleuronectiformes",6966,22,16,11
-"Lepidopsetta",NA,"Lepidopsetta","Pleuronectidae","Pleuronectiformes",6440,28,22,15
-"Triglops scepticus","Triglops scepticus","Triglops","Cottidae","Perciformes",5500,13,7,4
-"Pleuronectes quadrituberculatus","Pleuronectes quadrituberculatus","Pleuronectes","Pleuronectidae","Pleuronectiformes",4189,8,5,4
-"Oncorhynchus keta","Oncorhynchus keta","Oncorhynchus","Salmonidae","Salmoniformes",3575,11,6,5
-"Reinhardtius hippoglossoides","Reinhardtius hippoglossoides","Reinhardtius","Pleuronectidae","Pleuronectiformes",2693,3,3,3
-"Hemitripterus bolini","Hemitripterus bolini","Hemitripterus","Agonidae","Perciformes",2661,24,15,10
-"Limanda aspera","Limanda aspera","Limanda","Pleuronectidae","Pleuronectiformes",1241,11,10,7
-"Bathyagonus",NA,"Bathyagonus","Agonidae","Perciformes",990,5,4,3
-"Malacocottus",NA,"Malacocottus","Psychrolutidae","Perciformes",892,1,1,1
-"Agonidae",NA,NA,"Agonidae","Perciformes",773,11,6,4
-"Sarritor leptorhynchus","Sarritor leptorhynchus","Sarritor","Agonidae","Perciformes",461,1,1,1
-"Platichthys stellatus","Platichthys stellatus","Platichthys","Pleuronectidae","Pleuronectiformes",446,14,12,8
-"Oncorhynchus tshawytscha","Oncorhynchus tshawytscha","Oncorhynchus","Salmonidae","Salmoniformes",384,1,1,1
-"Careproctus",NA,"Careproctus","Liparidae","Perciformes",301,3,3,2
-"Aspidophoroides monopterygius","Aspidophoroides monopterygius","Aspidophoroides","Agonidae","Perciformes",288,1,1,1
-"Leptoclinus maculatus","Leptoclinus maculatus","Leptoclinus","Stichaeidae","Perciformes",250,3,3,2
-"Cottidae",NA,NA,"Cottidae","Perciformes",224,19,15,12
-"Lycodes",NA,"Lycodes","Zoarcidae","Perciformes",90,1,1,1
-"Zaprora silenus","Zaprora silenus","Zaprora","Zaproridae","Perciformes",80,3,2,1
-"Oncorhynchus gorbuscha","Oncorhynchus gorbuscha","Oncorhynchus","Salmonidae","Salmoniformes",44,1,1,1
-"Microgadus proximus","Microgadus proximus","Microgadus","Gadidae","Gadiformes",35,1,1,1
-"Careproctus rastrinus","Careproctus rastrinus","Careproctus","Liparidae","Perciformes",31,1,1,1
-"Gasterosteus aculeatus","Gasterosteus aculeatus","Gasterosteus","Gasterosteidae","Perciformes",26,1,1,1
-"Ammodytes personatus","Ammodytes personatus","Ammodytes","Ammodytidae","Uranoscopiformes",24,1,1,1
-"Ptilichthys goodei","Ptilichthys goodei","Ptilichthys","Ptilichthyidae","Perciformes",24,1,1,1
-"Sebastolobus",NA,"Sebastolobus","Sebastidae","Perciformes",21,1,1,1
-"Dasycottus setiger","Dasycottus setiger","Dasycottus","Psychrolutidae","Perciformes",18,1,1,1
+Agonidae,NA,NA,Agonidae,Perciformes,773,11,6,4,,,
+Ammodytes personatus,Ammodytes personatus,Ammodytes,Ammodytidae,Uranoscopiformes,24,1,1,1,,,
+Aspidophoroides monopterygius,Aspidophoroides monopterygius,Aspidophoroides,Agonidae,Perciformes,288,1,1,1,,,
+Atheresthes,NA,Atheresthes,Pleuronectidae,Pleuronectiformes,405896,133,67,34,,2,Atheresthes evermanni and Atheresthes stomias
+Atheresthes,Atheresthes evermanni,Atheresthes,Pleuronectidae,Pleuronectiformes,6966,22,16,11,,0,counted above  - will fix tax and lump
+Bathyagonus,NA,Bathyagonus,Agonidae,Perciformes,990,5,4,3,,,
+Bathymaster,NA,Bathymaster,Bathymasteridae,Perciformes,25764,36,21,13,,,
+Careproctus,NA,Careproctus,Liparidae,Perciformes,301,3,3,2,,,
+Careproctus rastrinus,Careproctus rastrinus,Careproctus,Liparidae,Perciformes,31,1,1,1,,,
+Clupea pallasii,Clupea pallasii,Clupea,Clupeidae,Clupeiformes,49713,36,22,14,,,
+Cottidae,NA,NA,Cottidae,Perciformes,224,19,15,12,,,
+Dasycottus setiger,Dasycottus setiger,Dasycottus,Psychrolutidae,Perciformes,18,1,1,1,,,
+Gadus,NA,Gadus,Gadidae,Gadiformes,105000,12,8,6,,x,
+Gadus chalcogrammus,Gadus chalcogrammus,Gadus,Gadidae,Gadiformes,3809410,135,68,34,,1,Gadus chalcogrammus
+Gadus macrocephalus,Gadus macrocephalus,Gadus,Gadidae,Gadiformes,7994,1,1,1,,,
+Gasterosteus aculeatus,Gasterosteus aculeatus,Gasterosteus,Gasterosteidae,Perciformes,26,1,1,1,,,
+Glyptocephalus zachirus,Glyptocephalus zachirus,Glyptocephalus,Pleuronectidae,Pleuronectiformes,35723,41,26,15,,,
+Hemilepidotus,NA,Hemilepidotus,Cottidae,Perciformes,10269,13,10,6,,,
+Hemitripterus bolini,Hemitripterus bolini,Hemitripterus,Agonidae,Perciformes,2661,24,15,10,,,
+Hippoglossus stenolepis,Hippoglossus stenolepis,Hippoglossus,Pleuronectidae,Pleuronectiformes,23455,36,23,14,,,
+Icelus spatula,Icelus spatula,Icelus,Cottidae,Perciformes,25289,39,24,14,,,
+Lepidopsetta,NA,Lepidopsetta,Pleuronectidae,Pleuronectiformes,6440,28,22,15,,,
+Leptoclinus maculatus,Leptoclinus maculatus,Leptoclinus,Stichaeidae,Perciformes,250,3,3,2,,,
+Limanda aspera,Limanda aspera,Limanda,Pleuronectidae,Pleuronectiformes,1241,11,10,7,,,
+Lycodes,NA,Lycodes,Zoarcidae,Perciformes,90,1,1,1,,,
+Lycodes brevipes,Lycodes brevipes,Lycodes,Zoarcidae,Perciformes,605629,127,65,33,,1,Lycodes brevipes
+Lycodes palearis,Lycodes palearis,Lycodes,Zoarcidae,Perciformes,54742,97,55,29,,,
+Malacocottus,NA,Malacocottus,Psychrolutidae,Perciformes,892,1,1,1,,,
+Microgadus proximus,Microgadus proximus,Microgadus,Gadidae,Gadiformes,35,1,1,1,,,
+Myoxocephalus,NA,Myoxocephalus,Cottidae,Perciformes,92146,50,31,19,,1,
+Oncorhynchus gorbuscha,Oncorhynchus gorbuscha,Oncorhynchus,Salmonidae,Salmoniformes,44,1,1,1,,,
+Oncorhynchus keta,Oncorhynchus keta,Oncorhynchus,Salmonidae,Salmoniformes,3575,11,6,5,,,
+Oncorhynchus tshawytscha,Oncorhynchus tshawytscha,Oncorhynchus,Salmonidae,Salmoniformes,384,1,1,1,,,
+Platichthys stellatus,Platichthys stellatus,Platichthys,Pleuronectidae,Pleuronectiformes,446,14,12,8,,,
+Pleuronectes quadrituberculatus,Pleuronectes quadrituberculatus,Pleuronectes,Pleuronectidae,Pleuronectiformes,4189,8,5,4,,,
+Pleuronectidae,NA,NA,Pleuronectidae,Pleuronectiformes,193634,112,61,31,,,"Hippoglossoides elassodon, Hippoglossoides robustus, or Limanda sakhalinensis"
+Ptilichthys goodei,Ptilichthys goodei,Ptilichthys,Ptilichthyidae,Perciformes,24,1,1,1,,,
+Reinhardtius hippoglossoides,Reinhardtius hippoglossoides,Reinhardtius,Pleuronectidae,Pleuronectiformes,2693,3,3,3,,,
+Sarritor leptorhynchus,Sarritor leptorhynchus,Sarritor,Agonidae,Perciformes,461,1,1,1,,,
+Sebastes,NA,Sebastes,Sebastidae,Perciformes,84500,44,27,19,,1,
+Sebastolobus,NA,Sebastolobus,Sebastidae,Perciformes,21,1,1,1,,,
+taxon,species,genus,family,order,total_reads,n_tech,n_extract,n_probes,,species count,
+Triglops scepticus,Triglops scepticus,Triglops,Cottidae,Perciformes,5500,13,7,4,,,
+Zaprora silenus,Zaprora silenus,Zaprora,Zaproridae,Perciformes,80,3,2,1,,,
